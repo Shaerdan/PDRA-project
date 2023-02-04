@@ -4,7 +4,7 @@ clc; clear all; close all;
 
 plot_num =1 ;
 h = 0.0125d0;
-nsteps = 200;
+nsteps = 50;
 na = 40;
 no = 40;
 n = na + no;
@@ -110,7 +110,7 @@ for i=y_ob_local
 end
 %
 %
-dX0_a = zeros(na,1); dX0_o = zeros(no,1); 
+dX0_a = rand(na,1); dX0_o = rand(no,1); 
 ub = zeros(n,1);innov=rand(n,assim_steps); u_lin = z_lin;
 u_lin(:,1) = ub; 
 [fa1,ga1] = calcfg_atmos_l96c(dX0_a,ub,innov,...
