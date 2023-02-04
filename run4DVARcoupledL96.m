@@ -67,28 +67,8 @@ y_ob = (ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps:1:ob_pattern_repeat_
 % y_ob = (nsteps:nsteps:ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps);
 
 %% formulate background&observation error cov matrices, and H matrix:
-
-B_method = 1;
-if B_method == 0
-    % SOAR types B:
-    L_atmos = 2; L_ocean = 4;
-    variance_atmos = 1; variance_ocean = 1;
-    [Bc_atmos] = generateBforL96c(N,L_atmos,variance_atmos);
-    [Bc_ocean] = generateBforL96c(N,L_ocean,variance_ocean);
-    B = blkdiag(Bc_atmos,Bc_ocean);
-end
-% Sample Covaraince from simulations
-if B_method == 1
-    % number_of_samples = floor(0.8*2*N);
-    number_of_samples = ntotal;
-    [B,C,s,SD] = sdcal_covgen_l96c([x0_init';y0_init'],h,nsteps,number_of_samples,na,no,Fx,Fy,alph,gamma);
-    Bc_atmos = B(1:na,1:na);
-    Bc_ocean = B(na+1:end,na+1:end);
-    figure(300)
-    imagesc(B);
-end
-Bainv = inv(Bc_atmos);
-Boinv = inv(Bc_ocean);
+number_of_samples = ntotal; % full sample size for (likely) nonsingular B
+[Bainv,Boinv,Ba,Bo] = GetCovMatriceB(number_of_samples,h,assim_steps,na,no,Fx,Fy,alph,gamma);
 % Bainv = eye(na,na);
 % Boinv = eye(no,no);
 var_ob = [1e-0, 1e-0];
