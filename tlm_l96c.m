@@ -5,8 +5,8 @@ function [F] = tlm_l96c(u,na,no,alph,gamma)
 nz = na + no;
 F_atom = zeros(na,na); F_ocean = zeros(no,no);
 u_atom = u(1:na); u_ocean = u(na+1:nz);
-F_atom_ocean = -gamma*eye(na,na);
-F_ocean_atom = gamma*eye(no,no);
+% F_atom_ocean = -gamma*eye(na,na);
+% F_ocean_atom = gamma*eye(no,no);
 for j = 1:na
     ip1 = j+1; if ip1>na, ip1=ip1-na; end
     ip2 = j+2; if ip2>na, ip2=ip2-na; end
@@ -28,6 +28,6 @@ for j = 1:no
     F_ocean(j,ip1) = (alph^2)*u_ocean(im1);
 end
 F = blkdiag(F_atom,F_ocean);
-F(1:na,na+1:nz) = F_atom_ocean;
-F(na+1:nz,1:na) = F_ocean_atom;
+% F(1:na,na+1:nz) = F_atom_ocean;
+% F(na+1:nz,1:na) = F_ocean_atom;
 end

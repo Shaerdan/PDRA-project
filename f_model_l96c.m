@@ -4,12 +4,11 @@ function [z_out] = f_model_l96c(z,no,na,alph,gamma,Fx,Fy)
 %    state z.
 z_out = zeros(no+na,1);
 y_out = zeros(no,1);
-x_out = y_out;
+x_out = zeros(no,1);
 x = z(1:na);
 y = z(na+1:end);
 for j = 1:na
     ip1 = j+1; if ip1>na, ip1=ip1-na; end
-    ip2 = j+2; if ip2>na, ip2=ip2-na; end
     im1 = j-1; if im1<1, im1=im1+na; end
     im2 = j-2; if im2<1, im2=im2+na; end
     x_out(j) = -x(im1)*(x(im2)-x(ip1))-x(j)...
