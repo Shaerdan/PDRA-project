@@ -33,10 +33,9 @@ for i_count_smoother = 1:s5_smoother_loops
         dJXo = [dJXo dJXoInner];
     end
     jo = max(size(JXo));
-    xvals=(0:jo-1);
-    figure(1010)
+    xvals=(0:jo-1)';
     subplot(n_cycles_per_smoother,2,(i_count_smoother-1)*2+1)
-    semilogy(xvals,JXo)
+    semilogy(xvals,JXoInner)
     %    title('Ocean: Convergence of cost function')
     title('Ocean: Cost')
     xlabel('Iteration')

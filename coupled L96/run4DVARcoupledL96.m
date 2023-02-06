@@ -19,7 +19,7 @@ n_ob_pattern_repeats = 4; % Total length of the run in terms of ob_pattern_repea
 ob_pattern_repeat_freq = 1; % The pattern of observation times repeats after
 % method control:
 min_method = 0; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
-assim_scheme = 4;  % 5 for smoother method
+assim_scheme = 5;  % 5 for smoother method
 l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step
 % data control:
 l_newbg_xb = 1;
@@ -32,7 +32,7 @@ l_plot_avg_error_norm = 0;
 l_plot_trajectories = 1;
 %% Smoother setup
 s5_B_scaling = 1;
-s5_smoother_loops = 2;  % Number of outer loops for smoother step only
+s5_smoother_loops = 4;  % Number of outer loops for smoother step only
 s5_iterations = 1;
 l_lin_s5 = 0;       % 0 = Take the analysis trajectory as both background and the first linearisation state;
 l_integration_coupled_s5 = 1;   % At the last outer loop of the last iteration of the smoother step (which produces
@@ -109,7 +109,10 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
         if (i_ob_pattern_repeats == 1 && i_part_of_ob_pattern == 1)
             if l_newbg_xb
                 noise = randn(ntotal,1);
-                z_b = z_t + sqrtm(B) * noise(1:ntotal);
+                z_b = z_t + sqrt(var_atmos_bg) * noise(1:ntotal);
+                % debugging check
+                figure(1000)
+                plot((z_b-z_t)/mean(abs(z_t)))
                 save(data_bgx_out,'z_b')
             else
                 load(data_bgx_in,'z_b')
