@@ -43,7 +43,7 @@ l_integration_coupled_s5 = 1;   % At the last outer loop of the last iteration o
 % for cases where IAU is used for the smoother step)
 update_method = 1;
 reset_atmosphere = 0;
-Increment_Scaling = 1.0d0;
+Increment_Scaling = 0.01d0;
 %% Setting up parameters for the assimilation
 
 % this number of (smoother) assimilation cycles
@@ -131,11 +131,11 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
             
             for i=x_ob_local
                 ob_ix(i) = 1;
-                z_ob(1:na,i) = z(1:na,i+1) + sqrt(var_ob(1))*obs_noise(1:na,i);
+                z_ob(1:na,i) = H(1:na,1:na)*(z(1:na,i+1) + sqrt(var_ob(1))*obs_noise(1:na,i));
             end
             for i=y_ob_local
                 ob_ix(i) = 1;
-                z_ob(na+1:ntotal,i) =  z(na+1:ntotal,i+1) + sqrt(var_ob(2))*obs_noise(na+1:ntotal,i);
+                z_ob(na+1:ntotal,i) =  H(na+1:ntotal,na+1:ntotal)*(z(na+1:ntotal,i+1) + sqrt(var_ob(2))*obs_noise(na+1:ntotal,i));
             end
             save(data_obs_out,'z_ob','ob_ix')
         else
@@ -188,7 +188,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     if min_method == 1
                         % Atmosphere
                         options0 = optimoptions('fmincon','CheckGradients',false,'SpecifyObjectiveGradient',false,...
-                            'PlotFcn','optimplotfval','MaxIterations',40);
+                            'PlotFcn','optimplotfval','MaxIterations',20);
                         dX0_a=zeros(na,1);
                         [dXa_anal,JXaInner,exitflag1,output1,lambda1,dJXaInner,hessian1] = fmincon(@(Xmin) calcfg_atmos_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
                             Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix),dX0_a,[],[],[],[],[],[],[],options0);
