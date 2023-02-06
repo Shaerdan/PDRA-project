@@ -10,7 +10,7 @@ Fx=15;
 Fy=8;
 alph=0.5;
 gamma= 0.6;
-N = 40;
+N = 5;
 na = N; no = N; ntotal = na + no;
 % loop controls:
 outer_loops = 5;     % number of outerloop for weakly coupled standard 4dvar
@@ -19,6 +19,7 @@ n_ob_pattern_repeats = 4; % Total length of the run in terms of ob_pattern_repea
 ob_pattern_repeat_freq = 1; % The pattern of observation times repeats after
 % method control:
 min_method = 0; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
+min_method_smoother = 1; 
 assim_scheme = 5;  % 5 for smoother method
 l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step
 % data control:
@@ -32,7 +33,7 @@ l_plot_avg_error_norm = 0;
 l_plot_trajectories = 1;
 %% Smoother setup
 s5_B_scaling = 1;
-s5_smoother_loops = 4;  % Number of outer loops for smoother step only
+s5_smoother_loops = 1;  % Number of outer loops for smoother step only
 s5_iterations = 1;
 l_lin_s5 = 0;       % 0 = Take the analysis trajectory as both background and the first linearisation state;
 l_integration_coupled_s5 = 1;   % At the last outer loop of the last iteration of the smoother step (which produces
@@ -290,8 +291,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     xlabel('Assimilation Steps')
                     legend show
                 end
-                
-                
+                               
                 if i_smooth_iteration == 1
                     %% Set background and truth for next cycle
                     z_b = za_f(:,nsteps+1);
@@ -303,7 +303,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     Bo,Roinv,H,s5_smoother_loops,z_ob,n_cycles_per_smoother,l_integration_coupled_s5,...
                     s5_iterations,i_smooth_iteration,...
                     h,nsteps,na,no,Fx,Fy,alph,gamma,ob_ix,i_ob_pattern_repeats,ob_pattern_repeat_freq,...
-                    i_part_of_ob_pattern,l_lin_s5,max_iterations,tolerance);
+                    i_part_of_ob_pattern,l_lin_s5,max_iterations,tolerance,min_method_smoother);
                 figure(400 + i_ob_pattern_repeats)
                 plot(za2_f(2+na,:),'b-o','DisplayName','PostSmoother Analysis Forecast'); hold on;
                 plot(za_chk(2+na,:),'k-*','DisplayName','Presmoother Analysis Forecast'); hold on;
