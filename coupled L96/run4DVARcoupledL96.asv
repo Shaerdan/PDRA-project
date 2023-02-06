@@ -10,15 +10,15 @@ Fx=15;
 Fy=8;
 alph=0.5;
 gamma= 0.6;
-N = 40;
+N = 10;
 na = N; no = N; ntotal = na + no;
 % loop controls:
 outer_loops=5;     % number of outerloop for weakly coupled standard 4dvar
 n_cycles_per_smoother = 4; % number of short window cycles per smoother cycle
-n_ob_pattern_repeats = 10; % Total length of the run in terms of ob_pattern_repeat_freq
+n_ob_pattern_repeats = 3; % Total length of the run in terms of ob_pattern_repeat_freq
 ob_pattern_repeat_freq = 1; % The pattern of observation times repeats after
 % method control:
-min_method = 1; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
+min_method = 1; % 0 for NKN, 1 for fmincon (bfgs)
 assim_scheme = 4;  % 5 for smoother method
 l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step
 % data control:
@@ -76,7 +76,7 @@ x_ob = (nsteps:nsteps:ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps);
 y_ob = (ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps:1:...
     ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps);
 % observation stats:
-var_ob = [1e-2, 1e-2];
+var_ob = [1e-1, 1e-1];
 R_atmos = var_ob(1)*eye(na,na); R_ocean = var_ob(2)*eye(no,no);
 R = blkdiag(R_atmos,R_ocean);
 Rinv = inv(R);
@@ -185,10 +185,9 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     % Perform separate minimisations
                     
                     %% weakly coupled standard 4dvar, minimisation routine:
+                    % Atmosphere
                     if min_method == 1
-                        % Atmosphere
-                        options0 = optimoptions('fmincon','CheckGradients',false,'SpecifyObjectiveGradient',false,...
-                            'PlotFcn','optimplotfval','MaxIterations',40);
+                        options0 = optimoptions('fmincon','CheckGradients',false,'SpecifyObjectiveGradient',false,'PlotFcn','optimplotfval');
                         dX0_a=zeros(na,1);
                         [dXa_anal,JXaInner,exitflag1,output1,lambda1,dJXaInner,hessian1] = fmincon(@(Xmin) calcfg_atmos_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
                             Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix),dX0_a,[],[],[],[],[],[],[],options0);
@@ -198,32 +197,31 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                         [dXo_anal,JXoInner,exitflag2,output2,lambda2,dJXoInner,hessian2] = fmincon(@(Xmin) calcfg_ocean_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
                             Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix),dX0_o);
                         ito = output2.iterations;
-
                     elseif min_method == 0
-                        % Atmosphere
                         dX0_a=zeros(na,1);
+                        
                         [dXa_anal, JXaInner, dJXaInner, ita, rel_grad_a] = minimize_mod_crit_NKN(dX0_a,'calcfg_atmos_l96c',max_iterations,tolerance, ...
                             zb_plot(:,i_cycles,1),innov,z_lin,H,...
                             Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix);
-                        
-                        % Ocean
                         dX0_o=zeros(no,1);
+                        
                         [dXo_anal, JXoInner, dJXoInner, ito, rel_grad_o] = minimize_mod_crit_NKN(dX0_o,'calcfg_ocean_l96c',max_iterations,tolerance, ...
                             zb_plot(:,i_cycles,1),innov,z_lin,H,...
                             Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix);
-                        format short
-                        IT_Outer_ITa_Ito = [i_count, ita, ito];
-                        format longe
-                        rel_grad_a;
-                        rel_grad_o;
-                        Cost_RG_Atmos = [JXaInner, rel_grad_a];
-                        Cost_RG_Ocean = [JXoInner, rel_grad_o];
-                        if Grad_Test == 1
-                            gradient_test(rand(na,1),rand(no,1),zb_plot(:,i_cycles,1),innov,...
-                                z_lin,H,ob_ix,Bainv,Rainv,Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma)
-                        end
-                    end % end of minimisation routines of weakly coupled
+                    if Grad_Test == 1
+                        gradient_test(rand(na,1),rand(no,1),zb_plot(:,i_cycles,1),innov,...
+                            z_lin,H,ob_ix,Bainv,Rainv,Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma)
+                    end
+                    
                     %%%%%%%%%%%%
+                    format short
+                    IT_Outer_ITa_Ito = [i_count, ita, ito];
+                    format longe
+                    %                     rel_grad_a;
+                    %                     rel_grad_o;
+                    Cost_RG_Atmos = [JXaInner, dJXaInner(end)];
+                    Cost_RG_Ocean = [JXoInner, dJXoInner(end)];
+                    %%%%%%%%%%%
                     
                     % Update fields
                     delta_z0 = [dXa_anal; dXo_anal];
@@ -259,12 +257,13 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 disp('***Final Results***')
                 format long
                 Xb_Xt_Xanal =[X_b(1), X_t(1), X_anal(1)]
-
+                %                 Bg_err(((i_ob_pattern_repeats-1) * ob_pattern_repeat_freq + (i_part_of_ob_pattern-1)) * n_cycles_per_smoother + i_cycles, :) = (X_b(1:5) - X_t(1:5))';
+                %                 disp('Errors: Total, Atmos, Ocean')
+                %                 error_b=[norm(rdivide(X_b(1:5)-X_t(1:5),SD')),norm(rdivide(X_b(1:3)-X_t(1:3),SD(1:3)')),norm(rdivide(X_b(4:5)-X_t(4:5),SD(4:5)'))]
+                %                 error_anal=[norm(rdivide(X_anal(1:5)-X_t(1:5),SD')),norm(rdivide(X_anal(1:3)-X_t(1:3),SD(1:3)')),norm(rdivide(X_anal(4:5)-X_t(4:5),SD(4:5)'))]
                 %%%%%%%%%%%%
-                if min_method == 0
-                    plot_convergence(JXa,dJXa,JXo,dJXo,i_cycles,i_part_of_ob_pattern,n_cycles_per_smoother,...
-                        l_plot_convergence)
-                end
+                plot_convergence(JXa,dJXa,JXo,dJXo,i_cycles,i_part_of_ob_pattern,n_cycles_per_smoother,...
+                    l_plot_convergence)
                 
                 %% Run forecast
                 xa=X_anal(1:na);

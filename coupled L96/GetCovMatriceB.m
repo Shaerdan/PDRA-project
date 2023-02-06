@@ -1,8 +1,8 @@
-function [Bainv,Boinv,Ba,Bo,SD] = GetCovMatriceB(number_of_samples,h,nsteps,na,no,Fx,Fy,alph,gamma)
+function [Bainv,Boinv,Ba,Bo,SD] = GetCovMatriceB(number_of_samples,h,nsteps,na,no,Fx,Fy,alph,gamma,l_SpCov_SOAR,...
+        L_atmos, L_ocean,variance_atmos, variance_ocean)
 %UNTITLED Summary of this function goes here
 %   formulate covariance matrices
 %   R matrix need some updating
-
 xvals=1:na; % atmosphere grid indeces
 yvals=1:no; % ocean grid indeces
 x0_init=sin(xvals/(na-1)*2*pi);
@@ -17,19 +17,19 @@ y0_init=cos(5*yvals/(no-1)*2*pi);
 
 %% formulate background&observation error cov matrices, and H matrix:
 
-B_method = 1;
-if B_method == 0
+if l_SpCov_SOAR == 1
     % SOAR types B:
-    L_atmos = 2; L_ocean = 4; % make these input variable
-    variance_atmos = 1; variance_ocean = 1; % make these input variable
-    [Ba] = generateBforL96c(N,L_atmos,variance_atmos);
-    [Bo] = generateBforL96c(N,L_ocean,variance_ocean);
+    [Ba] = generateBforL96c(na,L_atmos,variance_atmos);
+    [Bo] = generateBforL96c(no,L_ocean,variance_ocean);
     B = blkdiag(Ba,Bo);
+    SD = [sqrt(variance_atmos)*ones(na,1); sqrt(variance_ocean)*ones(no,1)];
 end
 % Sample Covaraince from simulations
-if B_method == 1
+if l_SpCov_SOAR == 0
     % number_of_samples = floor(0.8*2*N);
     [B,C,s,SD] = sdcal_covgen_l96c([x0_init';y0_init'],h,nsteps,number_of_samples,na,no,Fx,Fy,alph,gamma);
+    B(1:na,1:na) = variance_atmos*B(1:na,1:na);
+    B(na+1:end,na+1:end) = variance_ocean*B(na+1:end,na+1:end);
     Ba = B(1:na,1:na);
     Bo = B(na+1:end,na+1:end);
     figure(300)

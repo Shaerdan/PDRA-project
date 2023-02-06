@@ -18,22 +18,22 @@ dz0 = [dX0_a;zeros(no,1)];
 % [dx,dy,dz,dw,dv] = molteni_rk2_tl(h,nsteps,beta,rho,sigma,alpha_b, ...
 %     Omega,k,w_star,x,y,z,w,v,coupling_freq,dX0_a(1),dX0_a(2),dX0_a(3),0,0,alpha_b);
 for i=1:nsteps
-    fa = fa + 0.5 * (ob_ix(1:na,i)'.*(innov(1:na,i)-H(1:na,1:na)*dz(1:na,i+1))'...
-        *invR*((innov(1:na,i)-H(1:na,1:na)*dz(1:na,i+1))));
+    fa = fa + 0.5 * ob_ix(i)*(innov(1:na,i)-H(1:na,1:na)*dz(1:na,i+1))'...
+        *invR*(innov(1:na,i)-H(1:na,1:na)*dz(1:na,i+1));
 end
 f = fa;
 
 %% observation gradient at the last step:
 g_hat = zeros(na+no,nsteps+1);
-g_hat(1:na,nsteps+1) = g_hat(1:na,nsteps+1) - invR*(ob_ix(1:na,nsteps).*...
-    (innov(1:na,nsteps)-H(1:na,1:na)*dz(1:na,nsteps+1)));
+g_hat(1:na,nsteps+1) = g_hat(1:na,nsteps+1) - ob_ix(nsteps)*invR*...
+    (innov(1:na,nsteps)-H(1:na,1:na)*dz(1:na,nsteps+1));
 % adjoint interation:
 for i=nsteps:-1:2
     dfdz_adj = dfdz(:,:,i);
     dfdYi_adj = dfdYi(:,:,i);
     %   One step of adjoint model
     [g_hat_model] = l96c_rk2_adj(dfdz_adj,dfdYi_adj,g_hat(:,i+1),h,1,na,no);
-    g_hat(1:na,i) = g_hat_model(1:na,1) - invR*(ob_ix(1:na,i-1).*(innov(1:na,i-1)-H(1:na,1:na)*dz(1:na,i)));
+    g_hat(1:na,i) = g_hat_model(1:na,1) - ob_ix(i-1)*invR*(innov(1:na,i-1)-H(1:na,1:na)*dz(1:na,i));
 end
 [g_hat_model] = l96c_rk2_adj(dfdz(:,:,1),dfdYi(:,:,1),g_hat(:,2),h,1,na,no);
 g0 = g_hat_model(:,1);

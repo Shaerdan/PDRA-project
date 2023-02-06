@@ -15,8 +15,10 @@ Fx=15;
 Fy=8;
 alph=0.5;
 gamma= 0.6;
-number_of_samples = ntotal; % full sample size for (likely) nonsingular B
-[Bainv,Boinv,Ba,Bo] = GetCovMatriceB(number_of_samples,h,assim_steps,na,no,Fx,Fy,alph,gamma);
+number_of_samples = n; % full sample size for (likely) nonsingular B
+
+[Bainv,Boinv,Ba,Bo] = GetCovMatriceB(number_of_samples,h,nsteps,na,no,Fx,Fy,alph,gammal_SpCov_SOAR,...
+        L_atmos, L_ocean,variance_atmos, variance_ocean);
 % Jacobian test:
 % f1 = f_model_l96c(z0,no,na,alph,gamma,Fx,Fy);
 z0 = rand(n,1);
@@ -79,8 +81,8 @@ gamma = 0.6;
 
 %% Gradient Tests For calcfg_atmos_l96c and calcfg_ocean_l96c:
 H = eye(n,n);
-Bainv = rand(na,na); Bainv = Bainv'*Bainv;
-Boinv = rand(no,no); Boinv = Boinv'*Boinv;
+% Bainv = rand(na,na); Bainv = Bainv'*Bainv;
+% Boinv = rand(no,no); Boinv = Boinv'*Boinv;
 Rainv = rand(na,na); Rainv = Rainv'*Rainv;
 Roinv = rand(no,no); Roinv = Roinv'*Roinv;
 % ob_ix = ones(n,nsteps);
@@ -141,7 +143,16 @@ xlabel('Perturbeation Scaling')
 ylabel('$|\frac{||J(dXa+\gamma*h) - J(dXa)||}{||\gamma*h*dJ||}-1|$','interpreter','latex')
 legend show
 
+% Test the nonlinear model:
+nsteps_long = 50;
+h_model_test = 0.0125d0;
+xvals=1:na; % atmosphere grid indeces
+yvals=1:no; % ocean grid indeces
+x0_init=sin(xvals/(na-1)*2*pi);
+y0_init=cos(5*yvals/(no-1)*2*pi);
 
+z0_model_test = [x0_init';y0_init']+50*rand(n,1);
+[z_model_test] = l96c_rk2(z0_model_test,h_model_test,nsteps_long,na,no,Fx,Fy,alph,gamma);
 
 %     case 'fully coupled'
 %         %% here we also can test the tlm for the fully coupled model(for future applicaitons):
