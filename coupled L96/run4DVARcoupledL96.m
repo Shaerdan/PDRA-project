@@ -10,7 +10,7 @@ Fx=15;
 Fy=8;
 alph=0.5;
 gamma= 0.6;
-N = 10;
+N = 40;
 na = N; no = N; ntotal = na + no;
 % loop controls:
 outer_loops = 10;     % number of outerloop for weakly coupled standard 4dvar
@@ -18,7 +18,7 @@ n_cycles_per_smoother = 4; % number of short window cycles per smoother cycle
 n_ob_pattern_repeats = 4; % Total length of the run in terms of ob_pattern_repeat_freq
 ob_pattern_repeat_freq = 1; % The pattern of observation times repeats after
 % method control:
-min_method = 1; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
+min_method = 0; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
 assim_scheme = 4;  % 5 for smoother method
 l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step
 % data control:
