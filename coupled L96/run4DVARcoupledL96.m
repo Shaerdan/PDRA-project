@@ -10,10 +10,11 @@ Fx=15;
 Fy=8;
 alph=0.5;
 gamma= 0.6;
-N = 5;
+N = 40;
 na = N; no = N; ntotal = na + no;
 % loop controls:
 outer_loops = 5;     % number of outerloop for weakly coupled standard 4dvar
+s5_smoother_loops = 1;  % Number of outer loops for smoother step only
 n_cycles_per_smoother = 4; % number of short window cycles per smoother cycle
 n_ob_pattern_repeats = 4; % Total length of the run in terms of ob_pattern_repeat_freq
 ob_pattern_repeat_freq = 1; % The pattern of observation times repeats after
@@ -33,7 +34,6 @@ l_plot_avg_error_norm = 0;
 l_plot_trajectories = 1;
 %% Smoother setup
 s5_B_scaling = 1;
-s5_smoother_loops = 2;  % Number of outer loops for smoother step only
 s5_iterations = 1;
 l_lin_s5 = 1;       % 0 = Take the analysis trajectory as both background and the first linearisation state;
 l_integration_coupled_s5 = 1;   % At the last outer loop of the last iteration of the smoother step (which produces
