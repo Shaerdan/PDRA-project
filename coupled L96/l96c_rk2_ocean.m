@@ -15,9 +15,9 @@ y(:,1) = y0;
 %       
 for i=1:nsteps
     x_c = x(:,i);   
-    k1 = L96_coupled_fn_o([y(:,i);x_c],no,Fx,Fy,alph,gamma);
-    Yi = y(:,i) + h*k1;
-    k2 = L96_coupled_fn_o([Yi;x_c],no,Fx,Fy,alph,gamma);
-    y(:,i+1) = y(:,i) + 0.5d0*h*(k1+k2);
+    k1y = L96_coupled_fn_o([x_c;y(:,i)],no,Fx,Fy,alph,gamma);
+    Yi = y(:,i) + h*k1y;
+    k2y = L96_coupled_fn_o([x_c;Yi],no,Fx,Fy,alph,gamma);
+    y(:,i+1) = y(:,i) + 0.5d0*h*(k1y+k2y);
 end
 end

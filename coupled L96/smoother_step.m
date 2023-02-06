@@ -1,4 +1,4 @@
-function [za2_f] = smoother_step(za_plot,assim_steps,s5_B_scaling,...
+function [za2_f,z0] = smoother_step(za_plot,zb_plot,assim_steps,s5_B_scaling,...
     Bo,Roinv,H,s5_smoother_loops,z_ob,n_cycles_per_smoother,l_integration_coupled_s5,s5_iterations,i_smooth_iteration,...
     h,nsteps,na,no,Fx,Fy,alph,gamma,ob_ix,i_ob_pattern_repeats,ob_pattern_repeat_freq,i_part_of_ob_pattern,l_lin_s5,...
     max_iterations,tolerance,min_method)
@@ -12,7 +12,11 @@ za_plot_2 = [za_plot_2 za_plot(:,end,end)];
 Bo_smoother = s5_B_scaling * Bo;
 Boinv_smoother = inv(Bo_smoother);
 
-z_b = za_plot_2(:,1);
+if l_lin_s5
+    z_b = zb_plot(:,1,1);
+else
+    z_b = za_plot_2(:,1);
+end
 
 for i_count_smoother = 1:s5_smoother_loops
     if i_count_smoother == 1
@@ -24,7 +28,7 @@ for i_count_smoother = 1:s5_smoother_loops
     if min_method == 0
     dX0_o=zeros(no,1);
     [dXo_anal, JXoInner, dJXoInner, ito, rel_grad_o] = minimize_mod_crit_NKN(dX0_o,'calcfg_ocean_l96c',max_iterations,tolerance,...
-        z_b,innov_o,z_lin,H,Boinv_smoother,Roinv,nsteps*n_cycles_per_smoother,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,2));
+        z_b,innov_o,z_lin,H,Boinv_smoother,Roinv,nsteps*n_cycles_per_smoother,h,na,no,Fx,Fy,alph,0,ob_ix(:,2));
     % debugging plot:
     disp(strcat('Smoother dx = ',num2str(dXo_anal)))
     if i_count_smoother == 1     
@@ -59,7 +63,7 @@ for i_count_smoother = 1:s5_smoother_loops
         options0 = optimoptions('fmincon','CheckGradients',false,'SpecifyObjectiveGradient',false,...
             'PlotFcn','optimplotfval','MaxIterations',40);
         [dXo_anal,JXoInner,exitflag2,output2,lambda2,dJXoInner,hessian2] = fmincon(@(Xmin) calcfg_ocean_l96c(...
-            Xmin,z_b,innov_o,z_lin,H,Boinv_smoother,Roinv,nsteps*n_cycles_per_smoother,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,2)),...
+            Xmin,z_b,innov_o,z_lin,H,Boinv_smoother,Roinv,nsteps*n_cycles_per_smoother,h,na,no,Fx,Fy,alph,0,ob_ix(:,2)),...
             dX0_o,[],[],[],[],[],[],[],options0);
         disp(strcat('Smoother dx = ',num2str(dXo_anal)))
         ito = output2.iterations;    
@@ -71,7 +75,7 @@ for i_count_smoother = 1:s5_smoother_loops
             za2_f_icycles = l96c_rk2(X_temp,h,nsteps,na,no,Fx,Fy,alph,gamma);
             za2_f(na+1:na+no,(icycles-1)*nsteps+1:icycles*nsteps) = za2_f_icycles(na+1:end,1:nsteps);
             if icycles == n_cycles_per_smoother
-                za2_f(na+1:na+no,n_cycles_per_smoother*nsteps+1) = za2_f_icycles(na+1:na+no,nsteps+1);
+                za2_f(na+1:na+no,end) = za2_f_icycles(na+1:na+no,nsteps+1);
                 za2_f(1:na,:) = za_plot_2(1:na,:);
             end
             X_temp(1:na) = za_plot_2(1:na,icycles*nsteps+1); %
@@ -85,6 +89,9 @@ for i_count_smoother = 1:s5_smoother_loops
         za2_f(na+1:na+no,:)=ya2_f;
     end
 end
+
+z0 = za2_f(:,1);
+
 % za2_f is the guess trajectory for the next iteration
 % (i_smooth_iteration), and is the final analysis if this
 % is the last iteration

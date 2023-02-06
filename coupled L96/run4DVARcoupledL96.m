@@ -33,9 +33,9 @@ l_plot_avg_error_norm = 0;
 l_plot_trajectories = 1;
 %% Smoother setup
 s5_B_scaling = 1;
-s5_smoother_loops = 1;  % Number of outer loops for smoother step only
+s5_smoother_loops = 2;  % Number of outer loops for smoother step only
 s5_iterations = 1;
-l_lin_s5 = 0;       % 0 = Take the analysis trajectory as both background and the first linearisation state;
+l_lin_s5 = 1;       % 0 = Take the analysis trajectory as both background and the first linearisation state;
 l_integration_coupled_s5 = 1;   % At the last outer loop of the last iteration of the smoother step (which produces
 % the final analysis), whether to integrate the smoother analysis at initial time using
 % the coupled model; if yes, the atmospheric trajectory would be reset to that of the
@@ -299,7 +299,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 end
             end % i_cycles
             if assim_scheme == 5
-                [za2_f] = smoother_step(za_plot,assim_steps,s5_B_scaling,...
+                [za2_f,z0] = smoother_step(za_plot,zb_plot,assim_steps,s5_B_scaling,...
                     Bo,Roinv,H,s5_smoother_loops,z_ob,n_cycles_per_smoother,l_integration_coupled_s5,...
                     s5_iterations,i_smooth_iteration,...
                     h,nsteps,na,no,Fx,Fy,alph,gamma,ob_ix,i_ob_pattern_repeats,ob_pattern_repeat_freq,...
