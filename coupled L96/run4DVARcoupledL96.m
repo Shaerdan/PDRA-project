@@ -13,7 +13,7 @@ gamma= 0.6;
 N = 40;
 na = N; no = N; ntotal = na + no;
 % loop controls:
-outer_loops = 10;     % number of outerloop for weakly coupled standard 4dvar
+outer_loops = 5;     % number of outerloop for weakly coupled standard 4dvar
 n_cycles_per_smoother = 4; % number of short window cycles per smoother cycle
 n_ob_pattern_repeats = 4; % Total length of the run in terms of ob_pattern_repeat_freq
 ob_pattern_repeat_freq = 1; % The pattern of observation times repeats after
@@ -34,7 +34,7 @@ l_plot_trajectories = 1;
 s5_B_scaling = 1;
 s5_smoother_loops = 2;  % Number of outer loops for smoother step only
 s5_iterations = 1;
-l_lin_s5 = 1;       % 0 = Take the analysis trajectory as both background and the first linearisation state;
+l_lin_s5 = 0;       % 0 = Take the analysis trajectory as both background and the first linearisation state;
 l_integration_coupled_s5 = 1;   % At the last outer loop of the last iteration of the smoother step (which produces
 % the final analysis), whether to integrate the smoother analysis at initial time using
 % the coupled model; if yes, the atmospheric trajectory would be reset to that of the
@@ -283,7 +283,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     plot(za_chk(2,:),'k-*','DisplayName','Analysis Forecast'); hold on;
                     plot(z(2,:),'r-','DisplayName','Ground Truth'); hold on;
                     plot(zb_f_chk(2,:),'b:','DisplayName','Background Forecast'); hold on;
-                    plot(z_ob_chk(2,:),'g*','DisplayName','Observation');
+                    plot(z_ob_chk(2,:),'g*','DisplayName','Observation'); 
                     xlabel('Assimilation Steps')
                     legend show
                 end
@@ -297,8 +297,16 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
             end % i_cycles
             if assim_scheme == 5
                 [za2_f] = smoother_step(za_plot,assim_steps,s5_B_scaling,...
-                    Bc_ocean,s5_smoother_loops,z_ob,n_cycles_per_smoother,l_integration_coupled_s5,s5_iterations,i_smooth_iteration,...
-                    h,nsteps,na,no,Fx,Fy,alph,gamma,ob_ix,i_ob_pattern_repeats,ob_pattern_repeat_freq,i_part_of_ob_pattern,l_lin_s5);
+                    Bo,Roinv,H,s5_smoother_loops,z_ob,n_cycles_per_smoother,l_integration_coupled_s5,...
+                    s5_iterations,i_smooth_iteration,...
+                    h,nsteps,na,no,Fx,Fy,alph,gamma,ob_ix,i_ob_pattern_repeats,ob_pattern_repeat_freq,...
+                    i_part_of_ob_pattern,l_lin_s5,max_iterations,tolerance);
+                figure(400 + i_ob_pattern_repeats)
+                plot(za2_f(2+na,:),'b-o','DisplayName','PostSmoother Analysis Forecast'); hold on;
+                plot(za_chk(2+na,:),'k-*','DisplayName','Presmoother Analysis Forecast'); hold on;
+                plot(z(2+na,:),'r-','DisplayName','Presmoother Analysis Forecast'); 
+                xlabel('Assimilation Steps')
+                legend show
             end
             
         end
