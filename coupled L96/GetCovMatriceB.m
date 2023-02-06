@@ -1,4 +1,4 @@
-function [Bainv,Boinv,Ba,Bo,SD] = GetCovMatriceB(number_of_samples,h,nsteps,na,no,Fx,Fy,alph,gamma,l_SpCov_SOAR,...
+function [Bainv,Boinv,Ba,Bo,B,SD] = GetCovMatriceB(number_of_samples,h,nsteps,na,no,Fx,Fy,alph,gamma,l_SpCov_SOAR,...
         L_atmos, L_ocean,variance_atmos, variance_ocean)
 %UNTITLED Summary of this function goes here
 %   formulate covariance matrices
@@ -28,8 +28,7 @@ end
 if l_SpCov_SOAR == 0
     % number_of_samples = floor(0.8*2*N);
     [B,C,s,SD] = sdcal_covgen_l96c([x0_init';y0_init'],h,nsteps,number_of_samples,na,no,Fx,Fy,alph,gamma);
-    B(1:na,1:na) = variance_atmos*B(1:na,1:na);
-    B(na+1:end,na+1:end) = variance_ocean*B(na+1:end,na+1:end);
+    B= blkdiag(variance_atmos*B(1:na,1:na),variance_ocean*B(na+1:end,na+1:end));
     Ba = B(1:na,1:na);
     Bo = B(na+1:end,na+1:end);
     figure(300)

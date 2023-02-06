@@ -1,6 +1,6 @@
 clc; clear all; close all;
 tolerance = 1.0d-6;   % For solver
-max_iterations = 200; % For solver
+max_iterations = 20; % For solver
 % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
 Grad_Test = 0;
 %% rk2 solver parameters and model parameters for the l96 coupled model
@@ -10,12 +10,12 @@ Fx=15;
 Fy=8;
 alph=0.5;
 gamma= 0.6;
-N = 40;
+N = 10;
 na = N; no = N; ntotal = na + no;
 % loop controls:
-outer_loops=5;     % number of outerloop for weakly coupled standard 4dvar
+outer_loops = 10;     % number of outerloop for weakly coupled standard 4dvar
 n_cycles_per_smoother = 4; % number of short window cycles per smoother cycle
-n_ob_pattern_repeats = 10; % Total length of the run in terms of ob_pattern_repeat_freq
+n_ob_pattern_repeats = 4; % Total length of the run in terms of ob_pattern_repeat_freq
 ob_pattern_repeat_freq = 1; % The pattern of observation times repeats after
 % method control:
 min_method = 1; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
@@ -43,7 +43,7 @@ l_integration_coupled_s5 = 1;   % At the last outer loop of the last iteration o
 % for cases where IAU is used for the smoother step)
 update_method = 1;
 reset_atmosphere = 0;
-Increment_Scaling = 0.01d0;
+Increment_Scaling = 1;
 %% Setting up parameters for the assimilation
 
 % this number of (smoother) assimilation cycles
@@ -67,16 +67,16 @@ plot3(z_chk(1+na,:),z_chk(2+na,:),z_chk(3+na,:),'r-'); hold on; ...
 number_of_samples = ntotal; % full sample size for (likely) nonsingular B
 l_SpCov_SOAR = 0; % 0 for sampled covariance B, 1 for SOAR
 L_atmos = 2; L_ocean = 4; % make these input variable
-variance_atmos = 0.01; variance_ocean = 0.01;
-[Bainv,Boinv,Ba,Bo,SD] = GetCovMatriceB(number_of_samples,h,assim_steps,na,no,Fx,Fy,alph,gamma,...
-    l_SpCov_SOAR,L_atmos, L_ocean,variance_atmos, variance_ocean);
-B = blkdiag(Ba,Bo);
+var_atmos_bg = 0.1; var_ocean_bg = 0.1;
+[Bainv,Boinv,Ba,Bo,B,SD] = GetCovMatriceB(number_of_samples,h,assim_steps,na,no,Fx,Fy,alph,gamma,...
+    l_SpCov_SOAR,L_atmos, L_ocean,var_atmos_bg, var_ocean_bg);
+% B = blkdiag(Ba,Bo);
 % observation pattern:
 x_ob = (nsteps:nsteps:ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps);
 y_ob = (ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps:1:...
     ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps);
 % observation stats:
-var_ob = [1e-2, 1e-2];
+var_ob = [1e-1, 1e-1];
 R_atmos = var_ob(1)*eye(na,na); R_ocean = var_ob(2)*eye(no,no);
 R = blkdiag(R_atmos,R_ocean);
 Rinv = inv(R);
@@ -122,7 +122,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
         
         if l_newobs
             % Generate obs
-            ob_ix=zeros(assim_steps,1);
+            ob_ix=zeros(assim_steps,2);
             obs_noise=randn(ntotal,assim_steps);
             z_ob=zeros(ntotal,assim_steps);
             
@@ -130,11 +130,11 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
             y_ob_local = y_ob((y_ob > (i_part_of_ob_pattern-1)*assim_steps) & (y_ob <= i_part_of_ob_pattern*assim_steps)) - (i_part_of_ob_pattern-1)*assim_steps;
             
             for i=x_ob_local
-                ob_ix(i) = 1;
+                ob_ix(i,1) = 1;
                 z_ob(1:na,i) = H(1:na,1:na)*(z(1:na,i+1) + sqrt(var_ob(1))*obs_noise(1:na,i));
             end
             for i=y_ob_local
-                ob_ix(i) = 1;
+                ob_ix(i,2) = 1;
                 z_ob(na+1:ntotal,i) =  H(na+1:ntotal,na+1:ntotal)*(z(na+1:ntotal,i+1) + sqrt(var_ob(2))*obs_noise(na+1:ntotal,i));
             end
             save(data_obs_out,'z_ob','ob_ix')
@@ -191,12 +191,12 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                             'PlotFcn','optimplotfval','MaxIterations',20);
                         dX0_a=zeros(na,1);
                         [dXa_anal,JXaInner,exitflag1,output1,lambda1,dJXaInner,hessian1] = fmincon(@(Xmin) calcfg_atmos_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
-                            Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix),dX0_a,[],[],[],[],[],[],[],options0);
+                            Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,1)),dX0_a,[],[],[],[],[],[],[],options0);
                         ita = output1.iterations;
                         % Ocean
                         dX0_o=zeros(no,1);
                         [dXo_anal,JXoInner,exitflag2,output2,lambda2,dJXoInner,hessian2] = fmincon(@(Xmin) calcfg_ocean_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
-                            Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix),dX0_o);
+                            Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,2)),dX0_o);
                         ito = output2.iterations;
 
                     elseif min_method == 0
@@ -204,13 +204,13 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                         dX0_a=zeros(na,1);
                         [dXa_anal, JXaInner, dJXaInner, ita, rel_grad_a] = minimize_mod_crit_NKN(dX0_a,'calcfg_atmos_l96c',max_iterations,tolerance, ...
                             zb_plot(:,i_cycles,1),innov,z_lin,H,...
-                            Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix);
+                            Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,1));
                         
                         % Ocean
                         dX0_o=zeros(no,1);
                         [dXo_anal, JXoInner, dJXoInner, ito, rel_grad_o] = minimize_mod_crit_NKN(dX0_o,'calcfg_ocean_l96c',max_iterations,tolerance, ...
                             zb_plot(:,i_cycles,1),innov,z_lin,H,...
-                            Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix);
+                            Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,2));
                         format short
                         IT_Outer_ITa_Ito = [i_count, ita, ito];
                         format longe

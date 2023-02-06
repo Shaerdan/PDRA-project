@@ -18,7 +18,7 @@ gamma= 0.6;
 number_of_samples = n; % full sample size for (likely) nonsingular B
 l_SpCov_SOAR = 0;
 L_atmos = 2; L_ocean = 4; variance_atmos = 0.1; variance_ocean = 0.1;
-[Bainv,Boinv,Ba,Bo] = GetCovMatriceB(number_of_samples,h,nsteps,na,no,Fx,Fy,alph,gamma,l_SpCov_SOAR,...
+[Bainv,Boinv,Ba,Bo,B,SD] = GetCovMatriceB(number_of_samples,h,nsteps,na,no,Fx,Fy,alph,gamma,l_SpCov_SOAR,...
         L_atmos, L_ocean,variance_atmos, variance_ocean);
 % Jacobian test:
 % f1 = f_model_l96c(z0,no,na,alph,gamma,Fx,Fy);
