@@ -1,6 +1,6 @@
 clc; clear all; close all;
 tolerance = 1.0d-6;   % For solver
-max_iterations = 20; % For solver
+max_iterations = 50; % For solver
 % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
 Grad_Test = 0;
 %% rk2 solver parameters and model parameters for the l96 coupled model
@@ -10,16 +10,16 @@ Fx=15;
 Fy=8;
 alph=0.5;
 gamma= 0.6;
-N = 40;
+N = 20;
 na = N; no = N; ntotal = na + no;
 % loop controls:
-outer_loops = 2;     % number of outerloop for weakly coupled standard 4dvar
+outer_loops = 4;     % number of outerloop for weakly coupled standard 4dvar
 s5_smoother_loops = 2;  % Number of outer loops for smoother step only
 % n_cycles_per_smoother = 4; % number of short window cycles per smoother cycle
 % n_ob_pattern_repeats = 4; % Total length of the run in terms of ob_pattern_repeat_freq
 % method control:
 min_method = 0; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
-min_method_smoother = 1; 
+min_method_smoother = 0; % smoother min method, same options as above
 assim_scheme = 4;  % 5 for smoother method
 
 if assim_scheme == 4
@@ -76,7 +76,7 @@ plot3(z_chk(1+na,:),z_chk(2+na,:),z_chk(3+na,:),'r-'); hold on; ...
 number_of_samples = ntotal; % full sample size for (likely) nonsingular B
 l_SpCov_SOAR = 0; % 0 for sampled covariance B, 1 for SOAR
 L_atmos = 2; L_ocean = 4; % make these input variable
-var_atmos_bg = 0.1; var_ocean_bg = 0.1;
+var_atmos_bg = 0.5; var_ocean_bg = 0.5;
 [Bainv,Boinv,Ba,Bo,B,SD] = GetCovMatriceB(number_of_samples,h,assim_steps,na,no,Fx,Fy,alph,gamma,...
     l_SpCov_SOAR,L_atmos, L_ocean,var_atmos_bg, var_ocean_bg);
 % B = blkdiag(Ba,Bo);
@@ -85,7 +85,7 @@ x_ob = (nsteps:nsteps:ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps);
 y_ob = (ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps:1:...
     ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps);
 % observation stats:
-var_ob = [1e-1, 1e-1];
+var_ob = [1e-2, 1e-2];
 R_atmos = var_ob(1)*eye(na,na); R_ocean = var_ob(2)*eye(no,no);
 R = blkdiag(R_atmos,R_ocean);
 Rinv = inv(R);
@@ -93,9 +93,9 @@ Rainv = inv(R_atmos);
 Roinv = inv(R_ocean);
 H = eye(ntotal,ntotal);
 
-n_ob_pattern_repeats = 4;
+n_ob_pattern_repeats = 10;
 for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
-    clear zb_f_chk za_chk
+    clear zb_f_chk za_chk zb_f_chk_store za_chk_store
     for i_part_of_ob_pattern = 1:ob_pattern_repeat_freq
         %% Start identical-twin set-up
         
@@ -212,7 +212,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                         [dXo_anal,JXoInner,exitflag2,output2,lambda2,dJXoInner,hessian2] = fmincon(@(Xmin) calcfg_ocean_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
                             Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,2)),dX0_o);
                         ito = output2.iterations;
-
+                        
                     elseif min_method == 0
                         % Atmosphere
                         dX0_a=zeros(na,1);
@@ -273,11 +273,11 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 disp('***Final Results***')
                 format long
                 Xb_Xt_Xanal =[X_b(1), X_t(1), X_anal(1)]
-
+                
                 %%%%%%%%%%%%
                 if min_method == 0
                     plot_convergence(JXa,dJXa,JXo,dJXo,i_cycles,i_part_of_ob_pattern,n_cycles_per_smoother,...
-                        l_plot_convergence)
+                        ob_pattern_repeat_freq,l_plot_convergence,assim_scheme)
                 end
                 
                 %% Run forecast
@@ -290,10 +290,45 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 za_plot(:,i_cycles,:) = za_f;
                 za_chk(:,(i_cycles-1)*nsteps+1:(i_cycles-1)*nsteps+nsteps) = za_f(:,1:end-1);
                 z_ob_chk = z_ob;
+                z_ob_chk(z_ob_chk == 0) = nan;
+                if assim_scheme == 4
+                    indx_str = (i_part_of_ob_pattern-1)*nsteps+1;
+                    indx_end = (i_part_of_ob_pattern-1)*nsteps + nsteps;
+                    za_chk_store(:,indx_str:indx_end) = za_chk;
+                    z_store(:,indx_str:indx_end+1) = z;
+                    zb_f_chk_store(:,indx_str:indx_end) = zb_f_chk;
+                    z_ob_chk_store(:,indx_str:indx_end) = z_ob_chk;
+                    error_norm_analysis(indx_str:indx_end) = vecnorm(za_chk - z(:,1:end-1));
+                    error_norm_bg(indx_str:indx_end) = vecnorm(zb_f_chk - z(:,1:end-1));
+                else
+                    indx_str = (i_cycles-1)*nsteps+1;
+                    indx_end = (i_cycles-1)*nsteps + nsteps;
+                    error_norm_analysis(indx_str:indx_end) = vecnorm(za_chk(:,indx_left:indx_right)...
+                                                            -z(:,1:end-1));
+                    error_norm_bg(indx_str:indx_end) = vecnorm(zb_f_chk(:,indx_left:indx_right)...
+                        - z(:,1:end-1));
+                end
                 % debug plotting za_f vs z;
                 indx_show = 2;
-                trajectory_plotting(indx_show,assim_scheme,nsteps,n_cycles_per_smoother,...
-    i_ob_pattern_repeats,i_part_of_ob_pattern,i_cycles,z_ob,za_chk,z,zb_f_chk)
+                if i_cycles == n_cycles_per_smoother && assim_scheme == 5
+                    figure(200 + i_ob_pattern_repeats)
+                    plot(za_chk(indx_show,:),'k-*','DisplayName','Analysis Forecast'); hold on;
+                    plot(z(indx_show,:),'r-','DisplayName','Ground Truth'); hold on;
+                    plot(zb_f_chk(indx_show,:),'b-','DisplayName','Background Forecast'); hold on;
+                    plot(z_ob_chk(indx_show,:),'go','DisplayName','Observation');
+                    xlabel('Assimilation Steps')
+                    legend show
+                    figure(1200 + i_ob_pattern_repeats)
+                    plot(error_norm_bg,'b-*','DisplayName','')
+                elseif i_part_of_ob_pattern == ob_pattern_repeat_freq && assim_scheme == 4
+                    figure(200 + i_ob_pattern_repeats)
+                    plot(za_chk_store(indx_show,:),'k-*','DisplayName','Analysis Forecast'); hold on;
+                    plot(z_store(indx_show,:),'r-','DisplayName','Ground Truth'); hold on;
+                    plot(zb_f_chk_store(indx_show,:),'b-','DisplayName','Background Forecast'); hold on;
+                    plot(z_ob_chk_store(indx_show,:),'go','DisplayName','Observation');
+                    xlabel('Assimilation Steps')
+                    legend show
+                end
                 if i_smooth_iteration == 1
                     %% Set background and truth for next cycle
                     z_b = za_f(:,nsteps+1);
@@ -309,7 +344,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 figure(400 + i_ob_pattern_repeats)
                 plot(za2_f(2+na,:),'b-o','DisplayName','PostSmoother Analysis Forecast'); hold on;
                 plot(za_chk(2+na,:),'k-*','DisplayName','Presmoother Analysis Forecast'); hold on;
-                plot(z(2+na,:),'r-','DisplayName','True State'); 
+                plot(z(2+na,:),'r-','DisplayName','True State');
                 xlabel('Assimilation Steps')
                 legend show
             end
@@ -327,7 +362,14 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
     %     z_store(:,l_marker+1:r_marker+1) = z(:,:);
     %     u_ob_store(:,l_marker+1:r_marker) = z_ob(:,1:assim_steps);
 end     % i_part_of_ob_pattern
-
+save_all_figures = 1;
+if save_all_figures == 1
+ figHandles = findall(0,'Type','figure');
+ for i = 1:numel(figHandles)
+     fn = tempname(strcat('C:\06022023\results\'));  %in this example, we'll save to a temp directory.
+     export_fig(fn, '-png', figHandles(i))
+ end
+end
 % u_ob_store(u_ob_store == 0) = nan;
 % if assim_scheme == 5
 %     ua2_f_store(ua2_f_store == 0) = nan;
@@ -388,5 +430,6 @@ end     % i_part_of_ob_pattern
 % legend show
 % plot_num2 = plot_num2 + 1;
 
+ 
 
 
