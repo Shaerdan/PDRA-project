@@ -340,6 +340,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     z_t = z(:,i_cycles*nsteps+1);
                 end
             end % i_cycles
+            
             if assim_scheme == 5
                 [za2_f,z0] = smoother_step(za_plot,zb_plot,assim_steps,s5_B_scaling,...
                     Bo,Roinv,H,s5_smoother_loops,z_ob,n_cycles_per_smoother,l_integration_coupled_s5,...
