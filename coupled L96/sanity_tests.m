@@ -118,18 +118,18 @@ dX0_a = rand(na,1); dX0_o = rand(no,1);
 ub = zeros(n,1);innov=rand(n,assim_steps); u_lin = z_lin;
 u_lin(:,1) = ub; 
 [fa1,ga1] = calcfg_atmos_l96c(dX0_a,ub,innov,...
-    u_lin,H,Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix);
+    u_lin,H,Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix);
 hg_a = ga1/norm(ga1,2);
 [fo1,go1] = calcfg_ocean_l96c(dX0_o,ub,innov,...
-    u_lin,H,Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix);
+    u_lin,H,Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix);
 hg_o = go1/norm(go1,2);
 for itest = 1:14
     a(itest) = 10^(-itest);
     [fa2,ga2] = calcfg_atmos_l96c(dX0_a+a(itest)*hg_a,ub,innov,...
-        u_lin,H,Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix);
+        u_lin,H,Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix);
     Phi_a_atmos(itest) = (fa2 - fa1)/(a(itest)*hg_a'*ga1);
     [fo2,go2] = calcfg_ocean_l96c(dX0_o+a(itest)*hg_o,ub,innov,...
-        u_lin,H,Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix);
+        u_lin,H,Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix);
     Phi_a_ocean(itest) = (fo2 - fo1)/(a(itest)*hg_o'*go1);
 end
 figure(150)

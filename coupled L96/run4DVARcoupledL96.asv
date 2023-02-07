@@ -113,7 +113,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
         [z] = l96c_rk2(z0_t,h,assim_steps,na,no,Fx,Fy,alph,gamma);
         x = z(1:na,:);
         y = z(na+1:end,:);
-        z_t=[x0_t,y0_t]'; % truth at t_{(k-1)*assim_steps+1}, k is the repeated obs pattern
+        z_t=[x0_t,y0_t]'; % truth at t=(k-1)*assim_steps, k is repeated obs patt
         X_t= z_t;
         
         % Generate background
@@ -128,8 +128,6 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
             else
                 load(data_bgx_in,'z_b')
             end
-        elseif assim_scheme == 5
-            z_b = za2_f(:,assim_steps+1);
         else
             z_b = za_plot(:,end,end);
         end
@@ -170,12 +168,15 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     disp('********* START OF NEW CYCLE *********')
                     X_b=z_b;
                     X_t=z_t;
-
+                    Errormat_Tot_Atm_Oce_anal= zeros(s5_iterations, outer_loops, 3);
+                    % h,nsteps+fcsteps,beta,rho,sigma,alpha_b, ...
+                    %    Omega,k,w_star,z_b(1),z_b(2),z_b(3),z_b(4),z_b(5),coupling_freq
+                    %                     [zb_f,M] = transmat_lor96c(z_b,nsteps*h,h,na,Fx,Fy,alph,gamma);
                     [zb_f] = l96c_rk2(z_b,h,nsteps,na,no,Fx,Fy,alph,gamma);
                     xb_f = zb_f(1:na,:);
                     yb_f = zb_f(na+1:ntotal,:);
                     zb_plot(:,i_cycles,:) = zb_f;
-                    zb_f_chk(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps+1) = zb_f;
+                    zb_f_chk(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps) = zb_f(:,1:end-1);
                 end
                 
                 %% Perform assimilation of the weakly coupled standard 4DVAR:
@@ -187,11 +188,11 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                         z0 = z_b;
                         x_lin = xb_f(:,1:nsteps+1);
                         y_lin = yb_f(:,1:nsteps+1);
-                        z_lin = [x_lin;y_lin];
                     else
                         % Calculate nonlinear trajectory with coupled model
-                        [z_lin] = l96c_rk2(z0,h,nsteps,na,no,Fx,Fy,alph,gamma);
+                        [zb_f] = l96c_rk2(z0,h,nsteps,na,no,Fx,Fy,alph,gamma);
                     end
+                    z_lin = zb_f;
                     %                     z_lin = [x_lin,y_lin,z_lin,w_lin,v_lin]';
                     innov = z_ob(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps) - H*z_lin(:,2:nsteps+1); % Assume no ob at time zero.
                     % Includes where there are no obs, but can use ob_ix
@@ -204,12 +205,12 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                             'PlotFcn','optimplotfval','MaxIterations',20);
                         dX0_a=zeros(na,1);
                         [dXa_anal,JXaInner,exitflag1,output1,lambda1,dJXaInner,hessian1] = fmincon(@(Xmin) calcfg_atmos_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
-                            Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix(:,1)),dX0_a,[],[],[],[],[],[],[],options0);
+                            Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,1)),dX0_a,[],[],[],[],[],[],[],options0);
                         ita = output1.iterations;
                         % Ocean
                         dX0_o=zeros(no,1);
                         [dXo_anal,JXoInner,exitflag2,output2,lambda2,dJXoInner,hessian2] = fmincon(@(Xmin) calcfg_ocean_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
-                            Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix(:,2)),dX0_o);
+                            Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,2)),dX0_o);
                         ito = output2.iterations;
                         
                     elseif min_method == 0
@@ -217,13 +218,13 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                         dX0_a=zeros(na,1);
                         [dXa_anal, JXaInner, dJXaInner, ita, rel_grad_a] = minimize_mod_crit_NKN(dX0_a,'calcfg_atmos_l96c',max_iterations,tolerance, ...
                             zb_plot(:,i_cycles,1),innov,z_lin,H,...
-                            Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix(:,1));
+                            Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,1));
                         
                         % Ocean
                         dX0_o=zeros(no,1);
                         [dXo_anal, JXoInner, dJXoInner, ito, rel_grad_o] = minimize_mod_crit_NKN(dX0_o,'calcfg_ocean_l96c',max_iterations,tolerance, ...
                             zb_plot(:,i_cycles,1),innov,z_lin,H,...
-                            Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix(:,2));
+                            Boinv,Roinv,nsteps,h,na,no,Fx,Fy,alph,gamma,ob_ix(:,2));
                         format short
                         IT_Outer_ITa_Ito = [i_count, ita, ito];
                         format longe
@@ -287,18 +288,18 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 [za_f] = l96c_rk2(za,h,nsteps,na,no,Fx,Fy,alph,gamma);
                 
                 za_plot(:,i_cycles,:) = za_f;
-                za_chk(:,(i_cycles-1)*nsteps+1:(i_cycles-1)*nsteps+nsteps+1) = za_f;
+                za_chk(:,(i_cycles-1)*nsteps+1:(i_cycles-1)*nsteps+nsteps) = za_f(:,1:end-1);
                 z_ob_chk = z_ob;
                 z_ob_chk(z_ob_chk == 0) = nan;
                 if assim_scheme == 4
                     indx_str = (i_part_of_ob_pattern-1)*nsteps+1;
                     indx_end = (i_part_of_ob_pattern-1)*nsteps + nsteps;
-                    za_chk_store(:,indx_str:indx_end+1) = za_chk;
+                    za_chk_store(:,indx_str:indx_end) = za_chk;
                     z_store(:,indx_str:indx_end+1) = z;
-                    zb_f_chk_store(:,indx_str:indx_end+1) = zb_f_chk;
+                    zb_f_chk_store(:,indx_str:indx_end) = zb_f_chk;
                     z_ob_chk_store(:,indx_str:indx_end) = z_ob_chk;
-                    error_norm_analysis(indx_str:indx_end+1) = vecnorm(za_chk - z);
-                    error_norm_bg(indx_str:indx_end+1) = vecnorm(zb_f_chk - z);
+                    error_norm_analysis(indx_str:indx_end) = vecnorm(za_chk - z(:,1:end-1));
+                    error_norm_bg(indx_str:indx_end) = vecnorm(zb_f_chk - z(:,1:end-1));
                 else
                     indx_str = (i_cycles-1)*nsteps+1;
                     indx_end = (i_cycles-1)*nsteps + nsteps;
@@ -368,7 +369,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
     %     u_ob_store(:,l_marker+1:r_marker) = z_ob(:,1:assim_steps);
 end     % i_part_of_ob_pattern
 save_all_figures = 1;
-dirname = 'C:\07022023\results\1319\';
+dirname = 'C:\07022023\results\';
 mkdir(dirname);
 if save_all_figures == 1
  figHandles = findall(0,'Type','figure');
