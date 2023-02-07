@@ -5,12 +5,12 @@ max_iterations = 20; % For solver
 Grad_Test = 0;
 %% rk2 solver parameters and model parameters for the l96 coupled model
 nsteps = 50;
-h=0.00125d0;
+h=0.005d0;
 Fx=15;
 Fy=8;
 alph=0.5;
 gamma= 0.6;
-N = 40;
+N = 10;
 na = N; no = N; ntotal = na + no;
 % loop controls:
 outer_loops = 4;     % number of outerloop for weakly coupled standard 4dvar
@@ -312,27 +312,27 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 indx_show = 2;
                 if i_cycles == n_cycles_per_smoother && assim_scheme == 5
                     figure(200 + i_ob_pattern_repeats)
-                    plot(za_chk(indx_show,:),'k-*','DisplayName','Analysis Forecast'); hold on;
+                    plot(za_chk(indx_show,:),'k-','DisplayName','Analysis Forecast'); hold on;
                     plot(z(indx_show,:),'r-','DisplayName','Ground Truth'); hold on;
                     plot(zb_f_chk(indx_show,:),'b-','DisplayName','Background Forecast'); hold on;
                     plot(z_ob_chk(indx_show,:),'go','DisplayName','Observation');
                     xlabel('Assimilation Steps')
                     legend show
                     figure(1200 + i_ob_pattern_repeats)
-                    plot(error_norm_bg,'b-*','DisplayName','Background Trajectory Error Norm'); hold on;
-                    plot(error_norm_analysis,'k-*','DisplayName','Analysis Trajectory Error Norm')
+                    plot(error_norm_bg,'b-','DisplayName','Background Trajectory Error Norm'); hold on;
+                    plot(error_norm_analysis,'k-','DisplayName','Analysis Trajectory Error Norm')
                     legend show
                 elseif i_part_of_ob_pattern == ob_pattern_repeat_freq && assim_scheme == 4
                     figure(200 + i_ob_pattern_repeats)
-                    plot(za_chk_store(indx_show,:),'k-*','DisplayName','Analysis Forecast'); hold on;
+                    plot(za_chk_store(indx_show,:),'k-','DisplayName','Analysis Forecast'); hold on;
                     plot(z_store(indx_show,:),'r-','DisplayName','Ground Truth'); hold on;
                     plot(zb_f_chk_store(indx_show,:),'b-','DisplayName','Background Forecast'); hold on;
                     plot(z_ob_chk_store(indx_show,:),'go','DisplayName','Observation');
                     xlabel('Assimilation Steps')
                     legend show
                     figure(1200 + i_ob_pattern_repeats)
-                    plot(error_norm_bg,'b-*','DisplayName','Background Trajectory Error Norm'); hold on;
-                    plot(error_norm_analysis,'k-*','DisplayName','Analysis Trajectory Error Norm')
+                    plot(error_norm_bg,'b-','DisplayName','Background Trajectory Error Norm'); hold on;
+                    plot(error_norm_analysis,'k-','DisplayName','Analysis Trajectory Error Norm')
                     legend show                  
                 end
                 if i_smooth_iteration == 1
@@ -369,10 +369,12 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
     %     u_ob_store(:,l_marker+1:r_marker) = z_ob(:,1:assim_steps);
 end     % i_part_of_ob_pattern
 save_all_figures = 1;
+dirname = 'C:\07022023\results\';
+mkdir(dirname);
 if save_all_figures == 1
  figHandles = findall(0,'Type','figure');
  for i = 1:numel(figHandles)
-     fn = tempname(strcat('C:\06022023\results\'));  %in this example, we'll save to a temp directory.
+     fn = tempname(dirname);  %in this example, we'll save to a temp directory.
      export_fig(fn, '-png', figHandles(i))
  end
 end
