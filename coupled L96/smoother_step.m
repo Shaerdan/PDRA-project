@@ -40,8 +40,9 @@ for i_count_smoother = 1:s5_smoother_loops
     end
     jo = max(size(JXo));
     xvals=(0:jo-1);
+    if i_count_smoother == s5_smoother_loops
     figure(1010)
-    subplot(n_cycles_per_smoother,2,(i_count_smoother-1)*2+1)
+    subplot(s5_smoother_loops,2,(i_count_smoother-1)*2+1)
     semilogy(xvals,JXo)
     %    title('Ocean: Convergence of cost function')
     title('Ocean: Cost')
@@ -58,6 +59,7 @@ for i_count_smoother = 1:s5_smoother_loops
     title('Ocean: Grad')
     xlabel('Iteration')
     ylabel('Norm of gradient')
+    end
     elseif min_method == 1
         dX0_o=zeros(no,1);
         options0 = optimoptions('fmincon','CheckGradients',false,'SpecifyObjectiveGradient',false,...
