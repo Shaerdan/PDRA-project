@@ -13,8 +13,8 @@ alph=0.5;
 gamma= 0.6;
 N = 40;
 na = N; no = N; ntotal = na + no;
-var_atmos_bg = 1*1e-1; var_ocean_bg = 1*1e-1;
-var_ob = [1*1e-1, 1*1e-1];
+var_atmos_bg = 1*1e-2; var_ocean_bg = 1*1e-2;
+var_ob = [1*1e-2, 1*1e-2];
 % loop controls:
 n_ob_pattern_repeats = 1;
 outer_loops = 2;     % number of outerloop for weakly coupled standard 4dvar
@@ -99,8 +99,7 @@ H_space_pattern = 1:space_skip:ntotal;
 H_diag = zeros(1,ntotal);
 H_diag(H_space_pattern) = 1;
 H = diag(H_diag);
-N_Obs_Num_Spatial = length(H_space_pattern);
-N_Obs_Num_Spatial_o = N_Obs_Num_Spatial/2;
+N_O
 % H = eye(ntotal,ntotal);
 
 for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
@@ -312,15 +311,15 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     z_store(:,indx_str:indx_end+1) = z;
                     zb_f_chk_store(:,indx_str:indx_end+1) = zb_f_chk;
                     z_ob_chk_store(:,indx_str:indx_end) = z_ob_chk;
-                    error_norm_analysis(indx_str:indx_end+1) = vecnorm(za_chk - z)/N_Obs_Num_Spatial;
-                    error_norm_bg(indx_str:indx_end+1) = vecnorm(zb_f_chk - z)/N_Obs_Num_Spatial;
+                    error_norm_analysis(indx_str:indx_end+1) = vecnorm(za_chk - z);
+                    error_norm_bg(indx_str:indx_end+1) = vecnorm(zb_f_chk - z);
                 else
                     indx_str = (i_cycles-1)*nsteps+1;
                     indx_end = (i_cycles-1)*nsteps + nsteps;
                     error_norm_analysis(indx_str:indx_end) = vecnorm(za_chk(:,indx_str:indx_end)...
-                        -z(:,indx_str:indx_end))/N_Obs_Num_Spatial;
+                        -z(:,indx_str:indx_end));
                     error_norm_bg(indx_str:indx_end) = vecnorm(zb_f_chk(:,indx_str:indx_end)...
-                        - z(:,indx_str:indx_end))/N_Obs_Num_Spatial;
+                        - z(:,indx_str:indx_end));
                 end
                 % debug plotting za_f vs z;
                 indx_show = 10;
@@ -375,8 +374,8 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 plot(obs_chk,'go','DisplayName','Observation'); hold on;
                 xlabel('Assimilation Steps')
                 legend show
-                error_norm_postsmoother = vecnorm(za2_f(na+1:end,:) - z(na+1:end,:))/N_Obs_Num_Spatial_o;
-                error_norm_presmoother = vecnorm(za_chk(na+1:end,:) - z(na+1:end,:))/N_Obs_Num_Spatial_o;
+                error_norm_postsmoother = vecnorm(za2_f(na+1:end,:) - z(na+1:end,:));
+                error_norm_presmoother = vecnorm(za_chk(na+1:end,:) - z(na+1:end,:));
                 figure(1400+ i_ob_pattern_repeats)
                 semilogy(error_norm_postsmoother,'k-','DisplayName','Postsmoother error norm'); hold on; 
                 semilogy(error_norm_presmoother,'b-','DisplayName','Presmoother error norm');
