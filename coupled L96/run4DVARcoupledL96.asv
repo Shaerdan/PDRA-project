@@ -1,10 +1,14 @@
 clc; clear all; close all;
+
+n_repeat = 20;
+%% rk2 solver parameters and model parameters for the l96 coupled model
+for i_trial = 1:20
 tolerance = 1.0d-6;   % For solver
 max_iterations = 50; % For solver
 % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
 Grad_Test = 0;
-save_all_figures = 0;
-%% rk2 solver parameters and model parameters for the l96 coupled model
+save_all_figures = 1;
+dirname = 'C:\10022023\results\1\';    
 nsteps = 4;
 h=0.0125d0;
 Fx=15;
@@ -13,8 +17,8 @@ alph=0.5;
 gamma= 0.6;
 N = 40;
 na = N; no = N; ntotal = na + no;
-var_atmos_bg = 1*1e-2; var_ocean_bg = 1*1e-2;
-var_ob = [1*1e-2, 1*1e-2];
+var_atmos_bg = 1e-1; var_ocean_bg = 1e-1;
+var_ob = [1e-1, 1e-1];
 % loop controls:
 n_ob_pattern_repeats = 1;
 outer_loops = 2;     % number of outerloop for weakly coupled standard 4dvar
@@ -99,7 +103,8 @@ H_space_pattern = 1:space_skip:ntotal;
 H_diag = zeros(1,ntotal);
 H_diag(H_space_pattern) = 1;
 H = diag(H_diag);
-N_O
+N_Obs_Num_Spatial = length(H_space_pattern);
+N_Obs_Num_Spatial_o = N_Obs_Num_Spatial/2;
 % H = eye(ntotal,ntotal);
 
 for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
@@ -311,15 +316,15 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     z_store(:,indx_str:indx_end+1) = z;
                     zb_f_chk_store(:,indx_str:indx_end+1) = zb_f_chk;
                     z_ob_chk_store(:,indx_str:indx_end) = z_ob_chk;
-                    error_norm_analysis(indx_str:indx_end+1) = vecnorm(za_chk - z);
-                    error_norm_bg(indx_str:indx_end+1) = vecnorm(zb_f_chk - z);
+                    error_norm_analysis(indx_str:indx_end+1) = vecnorm(za_chk - z)/N_Obs_Num_Spatial;
+                    error_norm_bg(indx_str:indx_end+1) = vecnorm(zb_f_chk - z)/N_Obs_Num_Spatial;
                 else
                     indx_str = (i_cycles-1)*nsteps+1;
                     indx_end = (i_cycles-1)*nsteps + nsteps;
                     error_norm_analysis(indx_str:indx_end) = vecnorm(za_chk(:,indx_str:indx_end)...
-                        -z(:,indx_str:indx_end));
+                        -z(:,indx_str:indx_end))/N_Obs_Num_Spatial;
                     error_norm_bg(indx_str:indx_end) = vecnorm(zb_f_chk(:,indx_str:indx_end)...
-                        - z(:,indx_str:indx_end));
+                        - z(:,indx_str:indx_end))/N_Obs_Num_Spatial;
                 end
                 % debug plotting za_f vs z;
                 indx_show = 10;
@@ -374,16 +379,15 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                 plot(obs_chk,'go','DisplayName','Observation'); hold on;
                 xlabel('Assimilation Steps')
                 legend show
-                error_norm_postsmoother = vecnorm(za2_f(na+1:end,:) - z(na+1:end,:));
-                error_norm_presmoother = vecnorm(za_chk(na+1:end,:) - z(na+1:end,:));
+                error_norm_postsmoother = vecnorm(za2_f(na+1:end,:) - z(na+1:end,:))/N_Obs_Num_Spatial_o;
+                error_norm_presmoother = vecnorm(za_chk(na+1:end,:) - z(na+1:end,:))/N_Obs_Num_Spatial_o;
                 figure(1400+ i_ob_pattern_repeats)
                 semilogy(error_norm_postsmoother,'k-','DisplayName','Postsmoother error norm'); hold on; 
                 semilogy(error_norm_presmoother,'b-','DisplayName','Presmoother error norm');
                 xlabel('steps')
                 ylabel('error norm of the state')
                 legend show
-            end
-            
+            end            
         end
     end % i_smooth
     % breakpoint end of the one long window pattern:
@@ -399,15 +403,7 @@ for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
     %     u_ob_store(:,l_marker+1:r_marker) = z_ob(:,1:assim_steps);
 end     % i_part_of_ob_pattern
 
-if save_all_figures == 1
-    addpath('C:\GitHub\PDRA-project\coupled L96\savepicspackage')
-    dirname = 'C:\07022023\results\1319\';
-    mkdir(dirname);
-    figHandles = findall(0,'Type','figure');
-    for i = 1:numel(figHandles)
-        fn = tempname(dirname);  %in this example, we'll save to a temp directory.
-        export_fig(fn, '-png', figHandles(i))
-    end
+
 end
 % u_ob_store(u_ob_store == 0) = nan;
 % if assim_scheme == 5
