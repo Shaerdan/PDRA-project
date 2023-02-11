@@ -2,13 +2,13 @@ clc; clear all; close all;
 
 n_repeat = 20;
 %% rk2 solver parameters and model parameters for the l96 coupled model
-for i_trial = 1:10
+for i_trial = 1:40
     tolerance = 1.0d-6;   % For solver
     max_iterations = 50; % For solver
     % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
     Grad_Test = 0;
     save_all_figures = 1;
-    dirname = 'C:\10022023\results\3\';
+    dirname = 'C:\10022023\results\6\';
     nsteps = 4;
     h=0.0125d0;
     Fx=15;
@@ -18,7 +18,7 @@ for i_trial = 1:10
     N = 40;
     na = N; no = N; ntotal = na + no;
     var_atmos_bg = 1e-1; var_ocean_bg = 1e-1;
-    var_ob = [1e-1, 1e-1];
+    var_ob = [1e-6, 1e-6];
     % loop controls:
     n_ob_pattern_repeats = 1;
     outer_loops = 2;     % number of outerloop for weakly coupled standard 4dvar
@@ -105,6 +105,7 @@ for i_trial = 1:10
     H = diag(H_diag);
     N_Obs_Num_Spatial = length(H_space_pattern);
     N_Obs_Num_Spatial_o = N_Obs_Num_Spatial/2;
+    N_Obs_Num_Spatial_a = N_Obs_Num_Spatial_o;
     % H = eye(ntotal,ntotal);
     
     for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
@@ -177,7 +178,7 @@ for i_trial = 1:10
                 disp('add input from saved data');
                 %             load(data_obs_in)
             end
-            %                        
+            %
             %% Outer loops for smoother
             
             for i_smooth_iteration=1:s5_iterations
@@ -368,22 +369,51 @@ for i_trial = 1:10
                         h,nsteps,na,no,Fx,Fy,alph,gamma,ob_ix,i_ob_pattern_repeats,ob_pattern_repeat_freq,...
                         i_part_of_ob_pattern,l_lin_s5,max_iterations,tolerance,min_method_smoother);
                     figure(400 + i_ob_pattern_repeats)
-                    indx_show_ocean = 2 + na;
-                    plot(za2_f(indx_show_ocean,:),'k-o','DisplayName','PostSmoother Analysis Forecast'); hold on;
-                    plot(za_chk(indx_show_ocean,:),'b-*','DisplayName','Presmoother Analysis Forecast'); hold on;
-                    plot(z(indx_show_ocean,:),'r-','DisplayName','True State');hold on;
-                    obs_chk = [0 z_ob(indx_show_ocean,:)];
-                    obs_chk(obs_chk == 0) = nan;
-                    plot(obs_chk,'go','DisplayName','Observation'); hold on;
-                    xlabel('Assimilation Steps')
-                    legend show
+                    kk_sub_count = 1;
+                    sub_row = 4;
+                    len_obs = length(H_space_pattern(end/2+1:end));
+                    for i_sub_show = H_space_pattern(1:end/2)                        
+                        subplot(3,3,kk_sub_count)
+                        plot(za2_f(i_sub_show,:),'k-','DisplayName','PostSmoother Analysis Forecast'); hold on;
+                        plot(za_chk(i_sub_show,:),'b-','DisplayName','Presmoother Analysis Forecast'); hold on;
+                        plot(z(i_sub_show,:),'r-','DisplayName','True State');hold on;
+                        obs_chk = [0 z_ob(i_sub_show,:)];
+                        obs_chk(obs_chk == 0) = nan;
+                        plot(obs_chk,'go','DisplayName','Observation'); hold on;
+                        xlabel('Assimilation Steps')
+                        %                     legend show
+                        kk_sub_count = kk_sub_count + 1;
+                    end                   
+%                     error_norm_postsmoother = vecnorm(za2_f(1:na,:) - z(1:na,:))/N_Obs_Num_Spatial_a;
+%                     error_norm_presmoother = vecnorm(za_chk(1:na,:) - z(1:na,:))/N_Obs_Num_Spatial_a;
+%                     figure(1400+ i_ob_pattern_repeats)
+%                     semilogy(error_norm_postsmoother,'k-','DisplayName','Postsmoother error norm'); hold on;
+%                     semilogy(error_norm_presmoother,'b-','DisplayName','Presmoother error norm');
+%                     xlabel('steps')
+%                     ylabel('Atmospheric error norm')
+%                     legend show
+                    
+                    figure(800 + i_ob_pattern_repeats)
+                    kk_sub_count = 1;
+                    for i_sub_show = H_space_pattern(end/2+1:end)
+                        subplot(3,3,kk_sub_count)
+                        plot(za2_f(i_sub_show,:),'k-','DisplayName','PostSmoother Analysis Forecast'); hold on;
+                        plot(za_chk(i_sub_show,:),'b-','DisplayName','Presmoother Analysis Forecast'); hold on;
+                        plot(z(i_sub_show,:),'r-','DisplayName','True State');hold on;
+                        obs_chk = [0 z_ob(i_sub_show,:)];
+                        obs_chk(obs_chk == 0) = nan;
+                        plot(obs_chk,'go','DisplayName','Observation'); hold on;
+                        xlabel('Assimilation Steps')
+                        %                     legend show
+                        kk_sub_count = kk_sub_count + 1;
+                    end
                     error_norm_postsmoother = vecnorm(za2_f(na+1:end,:) - z(na+1:end,:))/N_Obs_Num_Spatial_o;
                     error_norm_presmoother = vecnorm(za_chk(na+1:end,:) - z(na+1:end,:))/N_Obs_Num_Spatial_o;
                     figure(1400+ i_ob_pattern_repeats)
                     semilogy(error_norm_postsmoother,'k-','DisplayName','Postsmoother error norm'); hold on;
                     semilogy(error_norm_presmoother,'b-','DisplayName','Presmoother error norm');
                     xlabel('steps')
-                    ylabel('error norm of the state')
+                    ylabel('Oceanic error norm')
                     legend show
                 end
             end
@@ -400,7 +430,7 @@ for i_trial = 1:10
                     num2str(i_ob_pattern_repeats));  %in this example, we'll save to a temp directory.
                 export_fig(fn,'-png',figHandles(i))
             end
-        end      
+        end
     end     % i_part_of_ob_pattern
     close all;
     clear all;
