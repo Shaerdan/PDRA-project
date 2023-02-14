@@ -2,13 +2,13 @@ clc; clear all; close all;
 
 n_repeat = 20;
 %% rk2 solver parameters and model parameters for the l96 coupled model
-for i_trial = 1:40
+for i_trial = 1:1
     tolerance = 1.0d-6;   % For solver
     max_iterations = 50; % For solver
     % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
     Grad_Test = 0;
-    save_all_figures = 1;
-    dirname = 'C:\10022023\results\6\';
+    save_all_figures = 0;
+    dirname = 'C:\10022023\results\11\';
     nsteps = 4;
     h=0.0125d0;
     Fx=15;
@@ -18,15 +18,15 @@ for i_trial = 1:40
     N = 40;
     na = N; no = N; ntotal = na + no;
     var_atmos_bg = 1e-1; var_ocean_bg = 1e-1;
-    var_ob = [1e-6, 1e-6];
+    var_ob = [1e-1, 1e-1];
     % loop controls:
-    n_ob_pattern_repeats = 1;
+    n_ob_pattern_repeats = 7;
     outer_loops = 2;     % number of outerloop for weakly coupled standard 4dvar
     s5_smoother_loops = 2;  % Number of outer loops for smoother step only
     % method control:
     min_method = 0; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
     min_method_smoother = 0; % smoother min method, same options as above
-    assim_scheme = 5;  % 5 for smoother method
+    assim_scheme = 4;  % 5 for smoother method
     
     if assim_scheme == 4
         n_cycles_per_smoother = 1;
@@ -46,9 +46,10 @@ for i_trial = 1:40
     % plot control:
     l_plot_convergence = 1;
     l_plot_state = 0;
-    l_plot_error_norm = 1;
-    l_plot_avg_error_norm = 0;
-    l_plot_trajectories = 1;
+    l_plot_error_norm = 0;
+    l_plot_avg_error_norm = 1;
+    l_plot_avg_error_norm_compare = 1;
+    l_plot_trajectories = 0;
     %% Smoother setup
     s5_B_scaling = 1;
     s5_iterations = 1;
@@ -107,14 +108,13 @@ for i_trial = 1:40
     N_Obs_Num_Spatial_o = N_Obs_Num_Spatial/2;
     N_Obs_Num_Spatial_a = N_Obs_Num_Spatial_o;
     % H = eye(ntotal,ntotal);
-    
+%     basetime = 0;
     for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
-        clear zb_f_chk za_chk zb_f_chk_store za_chk_store
+%         clear zb_f_chk za_chk zb_f_chk_store za_chk_store
         for i_part_of_ob_pattern = 1:ob_pattern_repeat_freq
             %% Start identical-twin set-up
             
             zb_plot=zeros(ntotal,n_cycles_per_smoother,nsteps+1);
-            
             % Generate truth
             if (i_ob_pattern_repeats == 1 && i_part_of_ob_pattern == 1)
                 x0_t = x0_init;
@@ -153,6 +153,7 @@ for i_trial = 1:40
             else
                 z_b = za_plot(:,end,end);
             end
+            disp(strcat('Pattern Repeats = ',num2str(i_ob_pattern_repeats)))
             % initialising za_plot
             za_plot=zeros(ntotal,n_cycles_per_smoother,nsteps+1);
             
@@ -305,6 +306,13 @@ for i_trial = 1:40
                     [za_f] = l96c_rk2(za,h,nsteps,na,no,Fx,Fy,alph,gamma);
                     
                     za_plot(:,i_cycles,:) = za_f;
+                    
+                    if i_smooth_iteration == 1
+                        %% Set background and truth for next cycle
+                        z_b = za_f(:,nsteps+1);
+                        z_t = z(:,i_cycles*nsteps+1);
+                    end                  
+                    
                     za_chk(:,(i_cycles-1)*nsteps+1:(i_cycles-1)*nsteps+nsteps+1) = za_f;
                     z_ob_chk = [z_ob];
                     z_ob_chk(z_ob_chk == 0) = nan;
@@ -327,39 +335,7 @@ for i_trial = 1:40
                     end
                     % debug plotting za_f vs z;
                     indx_show = 10;
-                    if i_cycles == n_cycles_per_smoother && assim_scheme == 5
-                        disp('Fix the presmoothing plots for the smoother method!')
-                        %                     figure(200 + i_ob_pattern_repeats)
-                        %                     plot(za_chk(indx_show,:),'k-','DisplayName','Analysis Forecast'); hold on;
-                        %                     plot(z(indx_show,:),'r-','DisplayName','Ground Truth'); hold on;
-                        %                     plot(zb_f_chk(indx_show,:),'b-','DisplayName','Background Forecast'); hold on;
-                        %                     plot(z_ob_chk(indx_show,:),'go','DisplayName','Observation');hold on;
-                        %                     xlabel('Assimilation Steps')
-                        %                     legend show
-                        %                     figure(1200 + i_ob_pattern_repeats)
-                        %                     semilogy(error_norm_bg,'b-','DisplayName','Background Trajectory Error Norm'); hold on;
-                        %                     semilogy(error_norm_analysis,'k-','DisplayName','Analysis Trajectory Error Norm')
-                        %                     legend show
-                    elseif i_part_of_ob_pattern == ob_pattern_repeat_freq && assim_scheme == 4
-                        z_ob_chk_store = [zeros(ntotal,1) z_ob_chk_store];
-                        z_ob_chk_store(z_ob_chk_store == 0) = nan;
-                        figure(200 + i_ob_pattern_repeats)
-                        plot(za_chk_store(indx_show,:),'k-','DisplayName','Analysis Forecast'); hold on;
-                        plot(z_store(indx_show,:),'r-','DisplayName','Ground Truth'); hold on;
-                        plot(zb_f_chk_store(indx_show,:),'b-','DisplayName','Background Forecast'); hold on;
-                        plot(z_ob_chk_store(indx_show,:),'go','DisplayName','Observation');hold on;
-                        xlabel('Assimilation Steps')
-                        legend show
-                        figure(1200 + i_ob_pattern_repeats)
-                        plot(error_norm_bg,'b-','DisplayName','Background Trajectory Error Norm'); hold on;
-                        plot(error_norm_analysis,'k-','DisplayName','Analysis Trajectory Error Norm')
-                        legend show
-                    end
-                    if i_smooth_iteration == 1
-                        %% Set background and truth for next cycle
-                        z_b = za_f(:,end);
-                        z_t = z(:,i_cycles*nsteps+1);
-                    end
+
                 end % i_cycles
                 
                 if assim_scheme == 5
@@ -416,8 +392,61 @@ for i_trial = 1:40
                     ylabel('Oceanic error norm')
                     legend show
                 end
+            end % i_smooth
+            % Store za_plot and zb_plot per pattern repeats for debugging:
+            
+            if l_plot_avg_error_norm_compare
+                %% Store norm values for later plotting
+                for i=1:n_cycles_per_smoother
+                    % Total norm
+                    bg_norm = vecnorm((squeeze(zb_plot(:,i,:)) - z(:,(i-1)*nsteps+1:i*nsteps+1)));
+                    anal_norm = vecnorm((squeeze(za_plot(:,i,:)) - z(:,(i-1)*nsteps+1:i*nsteps+1)));
+                    if assim_scheme == 4
+                        Err_norm_bg_1(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 1) = bg_norm;
+                        Err_norm_anal_1(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 1) = anal_norm;
+                    elseif assim_scheme == 5
+                        Err_norm_bg_2(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 1) = bg_norm;
+                        Err_norm_anal_2(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 1) = anal_norm;
+                    end
+                    
+                    % Atmospheric norm
+                    bg_norm = vecnorm((squeeze(zb_plot(1:na,i,:)) - z(1:na,(i-1)*nsteps+1:i*nsteps+1)));
+                    anal_norm = vecnorm((squeeze(za_plot(1:na,i,:)) - z(1:na,(i-1)*nsteps+1:i*nsteps+1)));
+                    if assim_scheme == 4
+                        Err_norm_bg_1(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 2) = bg_norm;
+                        Err_norm_anal_1(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 2) = anal_norm;
+                    elseif assim_scheme == 5
+                        Err_norm_bg_2(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 2) = bg_norm;
+                        Err_norm_anal_2(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 2) = anal_norm;
+                    end
+                    
+                    % Oceanic norm
+                    bg_norm = vecnorm((squeeze(zb_plot(na+1:ntotal,i,:)) - z(na+1:ntotal,(i-1)*nsteps+1:i*nsteps+1)));
+                    anal_norm = vecnorm((squeeze(za_plot(na+1:ntotal,i,:)) - z(na+1:ntotal,(i-1)*nsteps+1:i*nsteps+1)));
+                    if assim_scheme == 4
+                        Err_norm_bg_1(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 3) = bg_norm;
+                        Err_norm_anal_1(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 3) = anal_norm;
+                    elseif assim_scheme == 5
+                        Err_norm_bg_2(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 3) = bg_norm;
+                        Err_norm_anal_2(i_ob_pattern_repeats, i_part_of_ob_pattern, i, :, 3) = anal_norm;
+                    end
+                end
+                
+                if assim_scheme == 5 
+                    % Total norm
+                    smoother_norm = vecnorm((za2_f - z));
+                    Err_norm_smoother(i_ob_pattern_repeats, i_part_of_ob_pattern, :, 1) = smoother_norm;
+                    
+                    % Oceanic norm
+                    smoother_norm = vecnorm((za2_f(na+1:ntotal,:) - z(na+1:ntotal,:)));
+                    Err_norm_smoother(i_ob_pattern_repeats, i_part_of_ob_pattern, :, 2) = smoother_norm;
+                end
             end
-        end % i_smooth
+            if assim_scheme == 4
+                za_plot_pattern_repeats(:,:,i_part_of_ob_pattern,i_ob_pattern_repeats) = permute(za_plot,[1,3,2]);
+                zb_plot_pattern_repeats(:,:,i_part_of_ob_pattern,i_ob_pattern_repeats) = permute(zb_plot,[1,3,2]);
+            end
+        end  % i_part_of_ob_pattern
         % breakpoint end of the one long window pattern:
         disp('long window end')
         if save_all_figures == 1
@@ -431,9 +460,133 @@ for i_trial = 1:40
                 export_fig(fn,'-png',figHandles(i))
             end
         end
-    end     % i_part_of_ob_pattern
-    close all;
-    clear all;
+        
+        if l_plot_avg_error_norm
+            %% Plot error norms averaged over (smoother) cycles
+            if assim_scheme == 4
+                plot1a = figure(500+i_ob_pattern_repeats);
+            elseif assim_scheme == 5
+                plot1b = figure(700+i_ob_pattern_repeats);
+            end
+            
+            % Total norm
+            subplot(3,1,1)
+            hold on
+            if assim_scheme == 4
+                for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
+                    basetime = (i-1) * nsteps * h;
+                    bg_error = squeeze(mean(Err_norm_bg_1(:,i,:,:,1), 1));
+                    plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
+                    anal_error = squeeze(mean(Err_norm_anal_1(:,i,:,:,1), 1));
+                    plot((basetime:h:basetime+nsteps*h), anal_error, 'k')
+                    xline(basetime + nsteps * h,'HandleVisibility','Off');
+                    bg_error_repeats(:,i,i_ob_pattern_repeats) = bg_error;
+                    anal_error_repeats(:,i,i_ob_pattern_repeats) = anal_error;
+                end
+            elseif assim_scheme == 5
+                for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
+                    basetime = (i-1) * nsteps * h;
+                    bg_error = squeeze(mean(Err_norm_bg_2(:,:,i,:,1), 1));
+                    plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
+                    xline(basetime + nsteps * h,'HandleVisibility','Off');
+                    bg_error_repeats(:,i,i_ob_pattern_repeats) = bg_error;
+                end
+                anal_error = squeeze(mean(Err_norm_smoother(:,:,:,1), 1));
+                plot((0:h:nsteps*n_cycles_per_smoother*h), anal_error, 'k')
+            end
+            title(sprintf('Error norms averaged over %i windows of an identical observation pattern - Total', i_ob_pattern_repeats))
+            ylabel('Error norm')
+            xlabel('Time within the window')
+            hold off
+            
+            % Atmospheric norm
+            subplot(3,1,2)
+            hold on
+            if assim_scheme == 4
+                for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
+                    basetime = (i-1) * nsteps * h;
+                    bg_error = squeeze(mean(Err_norm_bg_1(:,i,:,:,2), 1));
+                    plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
+                    anal_error = squeeze(mean(Err_norm_anal_1(:,i,:,:,2), 1));
+                    plot((basetime:h:basetime+nsteps*h), anal_error, 'k')
+                    xline(basetime + nsteps * h,'HandleVisibility','Off');
+                end
+            elseif assim_scheme == 5
+                for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
+                    basetime = basetime + (i-1) * nsteps * h;
+                    bg_error = squeeze(mean(Err_norm_bg_2(:,:,i,:,2), 1));
+                    plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
+                    anal_error = squeeze(mean(Err_norm_anal_2(:,:,i,:,2), 1));
+                    plot((basetime:h:basetime+nsteps*h), anal_error, 'k')
+                    xline(basetime + nsteps * h,'HandleVisibility','Off');
+                end
+            end
+            title(sprintf('Error norms averaged over %i windows of an identical observation pattern - Total', i_ob_pattern_repeats))
+            ylabel('Error norm')
+            xlabel('Time within the window')
+            hold off
+            
+            % Ocenaic norm
+            subplot(3,1,3)
+            hold on
+            if assim_scheme == 4
+                for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
+                    basetime = (i-1) * nsteps * h;
+                    bg_error = squeeze(mean(Err_norm_bg_1(:,i,:,:,3), 1));
+                    plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
+                    anal_error = squeeze(mean(Err_norm_anal_1(:,i,:,:,3), 1));
+                    plot((basetime:h:basetime+nsteps*h), anal_error, 'k')
+                    xline(basetime + nsteps * h,'HandleVisibility','Off');
+                end
+            elseif assim_scheme == 5
+                for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
+                    basetime = (i-1) * nsteps * h;
+                    bg_error = squeeze(mean(Err_norm_bg_2(:,:,i,:,3), 1));
+                    plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
+                    xline(basetime + nsteps * h,'HandleVisibility','Off');
+                end
+                anal_error = squeeze(mean(Err_norm_smoother(:,:,:,2), 1));
+                plot((0:h:nsteps*n_cycles_per_smoother*h), anal_error, 'k')
+            end
+            title(sprintf('Error norms averaged over %i windows of an identical observation pattern - Ocean', i_ob_pattern_repeats))
+            ylabel('Error norm')
+            xlabel('Time within the window')
+            hold off
+        end  
+        if save_all_figures == 1 && n_ob_pattern_repeats ~=1
+            close all;
+            clear all;
+        end
+    end     % i_ob_pattern_repeats
+    if save_all_figures == 1
+        close all;
+        clear all;
+    end
+%     figure(8080)
+%     plot(bg_error_repeats)
+chk00 = permute(bg_error_repeats,[1,3,2]);
+chk0 = reshape(bg_error_repeats,[1,(nsteps+1)*n_ob_pattern_repeats*n_cycles_per_smoother*ob_pattern_repeat_freq]);
+chk1 = reshape(anal_error_repeats,[1,(nsteps+1)*n_ob_pattern_repeats*n_cycles_per_smoother*ob_pattern_repeat_freq]);
+figure(8080)
+t_val = 0:h:(nsteps+1)*n_ob_pattern_repeats*n_cycles_per_smoother*ob_pattern_repeat_freq*h-h;
+plot(t_val,chk0,'b'); hold on; plot(t_val,chk1,'k');
+xline(t_val(1:4:end));
+xline(t_val(1:4*4:end),'r');
+
+figure(8090)
+chk2 = reshape(zb_plot_pattern_repeats(2,:,:,:),[1,(nsteps+1)*n_ob_pattern_repeats*n_cycles_per_smoother*ob_pattern_repeat_freq]);
+chk3 = reshape(za_plot_pattern_repeats(2,:,:,:),[1,(nsteps+1)*n_ob_pattern_repeats*n_cycles_per_smoother*ob_pattern_repeat_freq]);
+plot(t_val,chk2,'b',t_val,chk3,'k',t_val(1:nsteps:end),chk2(1:nsteps:end),'b*',t_val(1:nsteps:end),chk3(1:nsteps:end),'ko');
+% xline(t_val(1:4:end));
+xline(t_val(1:4*4:end),'r');
+
+figure(8091)
+for i = 1:length(t_val)
+    if i ~= 1 && chk3(i-1) == chk2(i)
+    plot(t_val(i),chk2(i),'b*',t_val(i),chk3(i-1),'ko'); hold on;
+    disp(strcat('the matching entry is =',num2str(i)))
+    end
+end
 end
 
 
