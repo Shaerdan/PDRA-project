@@ -73,3 +73,9 @@ legend show
                     end
                     % debug plotting za_f vs z;
                     indx_show = 10;
+                    
+                    
+%             if assim_scheme == 4
+%                 za_plot_pattern_repeats(:,:,i_part_of_ob_pattern,i_ob_pattern_repeats) = permute(za_plot,[1,3,2]);
+%                 zb_plot_pattern_repeats(:,:,i_part_of_ob_pattern,i_ob_pattern_repeats) = permute(zb_plot,[1,3,2]);
+%             end                    
