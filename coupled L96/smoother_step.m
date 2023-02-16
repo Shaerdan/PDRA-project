@@ -30,7 +30,7 @@ for i_count_smoother = 1:s5_smoother_loops
     [dXo_anal, JXoInner, dJXoInner, ito, rel_grad_o] = minimize_mod_crit_NKN(dX0_o,'calcfg_ocean_l96c',max_iterations,tolerance,...
         z_b,innov_o,z_lin,H,Boinv_smoother,Roinv,nsteps*n_cycles_per_smoother,h,na,no,Fx,Fy,alph,0,ob_ix(:,2));
     % debugging plot:
-    disp(strcat('Smoother dx = ',num2str(dXo_anal)))
+    %disp(strcat('Smoother dx = ',num2str(dXo_anal)))
     if i_count_smoother == 1     
         JXo  = JXoInner;
         dJXo = dJXoInner;

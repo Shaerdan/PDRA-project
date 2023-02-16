@@ -12,8 +12,6 @@ for i_trial = 1:2
     Grad_Test = 0;
     save_all_figures = 0;
     dirname = strcat('C:\results\DA\14022023\8randonecycle\');
-    filename1 = 'C:\results\DA\14022023\8randonecycle\plot1a.fig';
-    filename2 = 'C:\results\DA\14022023\8randonecycle\plot1b.fig'; 
     nsteps = 4;
     h=0.0125d0;
     Fx=15;
@@ -500,8 +498,8 @@ for i_trial = 1:2
         hold off
     end  % end of plotting module
 end % i_trial
-saveas(plot1a,filename1);
-saveas(plot1b,filename2);
+saveas(plot1a,'C:\results\DA\14022023\8randonecycle\plot1a.fig')
+saveas(plot1b,'C:\results\DA\14022023\8randonecycle\plot1b.fig')
 
 
 
