@@ -4,14 +4,14 @@ close all;
 
 n_repeat_no_cycle = 1;
 %% rk2 solver parameters and model parameters for the l96 coupled model
-for i_trial = 1:1
+for i_trial = 1:2
     rng(1)  % Fix random seed
     tolerance = 1.0d-6;   % For solver
-    max_iterations = 10; % For solver
+    max_iterations = 100; % For solver
     % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
     Grad_Test = 0;
-    save_all_figures = 1;
-    dirname = strcat('C:\results\DA\14022023\7randonecycle\');
+    save_all_figures = 0;
+    dirname = strcat('C:\results\DA\14022023\8randonecycle\');
     nsteps = 4;
     h=0.0125d0;
     Fx=15;
@@ -23,11 +23,11 @@ for i_trial = 1:1
     var_atmos_bg = 1e-0; var_ocean_bg = 1e-0;
     var_ob = [1e-0, 1e-0];
     % loop controls:
-    n_ob_pattern_repeats = 1;
+    n_ob_pattern_repeats = 5000;
     outer_loops = 1;     % number of outerloop for weakly coupled standard 4dvar
     s5_smoother_loops = 2;  % Number of outer loops for smoother step only
     % method control:
-    min_method = 1; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
+    min_method = 0; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
     min_method_smoother = 0; % smoother min method, same options as above
     schemes_trial = [4 5];
     assim_scheme = schemes_trial(i_trial);  % 5 for smoother method
@@ -83,9 +83,9 @@ for i_trial = 1:1
             [z_chk] = l96c_rk2([x0_init';y0_init'],h,i_model_tn(end)*assim_steps,na,no,Fx,Fy,alph,gamma);
             x0_init = z_chk(1:na,end)';
             y0_init = z_chk(na+1:end,end)';
-            figure(900)
-            plot3(z_chk(1+na,:),z_chk(2+na,:),z_chk(3+na,:),'r-'); hold on; ...
-                plot3(z_chk(1,:),z_chk(2,:),z_chk(3,:),'k-');
+%             figure(900)
+%             plot3(z_chk(1+na,:),z_chk(2+na,:),z_chk(3+na,:),'r-'); hold on; ...
+%                 plot3(z_chk(1,:),z_chk(2,:),z_chk(3,:),'k-');
         end
         %% formulate background&observation error cov matrices, and H matrix:
         number_of_samples = ntotal; % full sample size for (likely) nonsingular B
@@ -219,7 +219,7 @@ for i_trial = 1:1
                             xb_f = zb_f(1:na,:);
                             yb_f = zb_f(na+1:ntotal,:);
                             zb_plot(:,i_cycles,:) = zb_f;
-                            zb_f_chk(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps+1) = zb_f;
+%                             zb_f_chk(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps+1) = zb_f;
                         end
                         
                         %% Perform assimilation of the weakly coupled standard 4DVAR:
@@ -237,7 +237,7 @@ for i_trial = 1:1
                                 [z_lin] = l96c_rk2(z0,h,nsteps,na,no,Fx,Fy,alph,gamma);
                             end
                             %                     z_lin = [x_lin,y_lin,z_lin,w_lin,v_lin]';
-                            innov = H*z_ob(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps) - H*z_lin(:,2:nsteps+1); % Assume no ob at time zero.
+                            innov = z_ob(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps) - H*z_lin(:,2:nsteps+1); % Assume no ob at time zero.
                             % Includes where there are no obs, but can use ob_ix
                             % Perform separate minimisations
                             
@@ -245,7 +245,7 @@ for i_trial = 1:1
                             if min_method == 1
                                 % Atmosphere
                                 options0 = optimoptions('fmincon','CheckGradients',false,'SpecifyObjectiveGradient',false,...
-                                    'PlotFcn','optimplotfval','MaxIterations',20);
+                                    'PlotFcn','optimplotfval','MaxIterations',max_iterations);
                                 dX0_a=zeros(na,1);
                                 [dXa_anal,JXaInner,exitflag1,output1,lambda1,dJXaInner,hessian1] = fmincon(@(Xmin) calcfg_atmos_l96c(Xmin,zb_plot(:,i_cycles,1),innov,z_lin,H,...
                                     Bainv,Rainv,nsteps,h,na,no,Fx,Fy,alph,0,ob_ix(:,1)),dX0_a,[],[],[],[],[],[],[],options0);
