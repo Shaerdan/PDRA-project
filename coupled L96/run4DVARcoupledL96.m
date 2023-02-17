@@ -11,9 +11,10 @@ for i_trial = 1:2
     % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
     Grad_Test = 0;
     save_all_figures = 0;
-    dirname = strcat('C:\results\DA\14022023\8randonecycle\');
-    filename1 = 'C:\results\DA\14022023\8randonecycle\plot1a.fig';
-    filename2 = 'C:\results\DA\14022023\8randonecycle\plot1b.fig'; 
+    dirname = strcat('C:\results\DA\16022023\longcycle\');
+    mkdir(dirname);
+    filename1 = 'C:\results\DA\16022023\longcycle\plot1a.fig';
+    filename2 = 'C:\results\DA\16022023\longcycle\plot1b.fig'; 
     nsteps = 4;
     h=0.0125d0;
     Fx=15;
@@ -23,7 +24,7 @@ for i_trial = 1:2
     N = 40;
     na = N; no = N; ntotal = na + no;
     var_atmos_bg = 1e-0; var_ocean_bg = 1e-0;
-    var_ob = [1e-0, 1e-0];
+    var_ob = [1e-0, 1e-0];    
     % loop controls:
     n_ob_pattern_repeats = 5000;
     outer_loops = 1;     % number of outerloop for weakly coupled standard 4dvar
@@ -108,7 +109,7 @@ for i_trial = 1:2
         Rinv = inv(R);
         Rainv = inv(R_atmos);
         Roinv = inv(R_ocean);
-        space_skip = 1;
+        space_skip = 4;
         H_space_pattern = 1:space_skip:ntotal;
         H_diag = zeros(1,ntotal);
         H_diag(H_space_pattern) = 1;
