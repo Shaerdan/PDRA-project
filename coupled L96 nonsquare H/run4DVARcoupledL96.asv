@@ -18,7 +18,7 @@ for ii = 1:1
         save_all_figures = 1;
         if save_all_figures == 1
             dirname = strcat('C:\results\DA\21Feb2023\a',num2str(space_skip_a),...
-            'o',num2str(space_skip_o),'-sigmaBsigmaR-',num2str(sqrt(var_bg)),'-bgobratio-',num2str(ratio_bgob),'\');
+                'o',num2str(space_skip_o),'-sigmaBsigmaR-',num2str(sqrt(var_bg)),'\');
             mkdir(dirname);
             filename1 = strcat(dirname,'plot1a-',num2str(ii),'update_method',num2str(update_method),'.fig');
             filename2 = strcat(dirname,'plot1b-',num2str(ii),'update_method',num2str(update_method),'.fig');
