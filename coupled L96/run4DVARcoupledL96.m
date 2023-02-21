@@ -3,32 +3,56 @@ clear all;
 close all;
 
 n_repeat_no_cycle = 1;
+n_ob_pattern_repeats = 5000;
+var_atmos_bg = 1e-0; var_ocean_bg = 1e-0;
+var_ob = [1e-0, 1e-0];
+space_skip = 1;
+
+tolerance = 1.0d-6;   % For solver
+max_iterations = 100; % For solver
+% Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
+Grad_Test = 0;
+save_all_figures = 0;
+dirname = strcat('C:\results\DA\17022023\longcycle2\');
+mkdir(dirname);
+filename1 = 'C:\results\DA\16022023\longcycle\plot1a.fig';
+filename2 = 'C:\results\DA\16022023\longcycle\plot1b.fig';
+nsteps = 4;
+h=0.0125d0;
+Fx=15;
+Fy=8;
+alph=0.5;
+gamma= 0.6;
+N = 40;
+na = N; no = N; ntotal = na + no;
+outer_loops = 1;     % number of outerloop for weakly coupled standard 4dvar
+s5_smoother_loops = 2;  % Number of outer loops for smoother step only
+
+R_atmos = var_ob(1)*eye(na,na); R_ocean = var_ob(2)*eye(no,no);
+R = blkdiag(R_atmos,R_ocean);
+Rinv = inv(R);
+Rainv = inv(R_atmos);
+Roinv = inv(R_ocean);
+H_space_pattern = 1:space_skip:ntotal;
+H_diag = zeros(1,ntotal);
+H_diag(H_space_pattern) = 1;
+H = diag(H_diag);
+N_Obs_Num_Spatial = length(H_space_pattern);
+N_Obs_Num_Spatial_o = N_Obs_Num_Spatial/2;
+N_Obs_Num_Spatial_a = N_Obs_Num_Spatial_o;
+
+number_of_samples = ntotal; % full sample size for (likely) nonsingular B
+l_SpCov_SOAR = 1; % 0 for sampled covariance B, 1 for SOAR
+L_atmos = 4; L_ocean = 2; % make these input variable
+
+[Bainv,Boinv,Ba,Bo,B,SD] = GetCovMatriceB(number_of_samples,h,100,na,no,Fx,Fy,alph,gamma,...
+    l_SpCov_SOAR,L_atmos, L_ocean,var_atmos_bg, var_ocean_bg);
+
+
 %% rk2 solver parameters and model parameters for the l96 coupled model
-for i_trial = 1:2
+for i_trial = 1:1
     rng(1)  % Fix random seed
-    tolerance = 1.0d-6;   % For solver
-    max_iterations = 100; % For solver
-    % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
-    Grad_Test = 0;
-    save_all_figures = 0;
-    dirname = strcat('C:\results\DA\16022023\longcycle\');
-    mkdir(dirname);
-    filename1 = 'C:\results\DA\16022023\longcycle\plot1a.fig';
-    filename2 = 'C:\results\DA\16022023\longcycle\plot1b.fig'; 
-    nsteps = 4;
-    h=0.0125d0;
-    Fx=15;
-    Fy=8;
-    alph=0.5;
-    gamma= 0.6;
-    N = 40;
-    na = N; no = N; ntotal = na + no;
-    var_atmos_bg = 1e-0; var_ocean_bg = 1e-0;
-    var_ob = [1e-0, 1e-0];    
     % loop controls:
-    n_ob_pattern_repeats = 5000;
-    outer_loops = 1;     % number of outerloop for weakly coupled standard 4dvar
-    s5_smoother_loops = 2;  % Number of outer loops for smoother step only
     % method control:
     min_method = 0; % 0 for NKN with Adjoint grad, 1 for fmincon with FD grad (bfgs)
     min_method_smoother = 0; % smoother min method, same options as above
@@ -76,6 +100,8 @@ for i_trial = 1:2
     
     xvals=1:na; % atmosphere grid indeces
     yvals=1:no; % ocean grid indeces
+    
+
     for i_repeat_one_cycle = 1: n_repeat_no_cycle
         
         x0_init=sin(xvals/(na-1)*2*pi);
@@ -91,12 +117,13 @@ for i_trial = 1:2
 %                 plot3(z_chk(1,:),z_chk(2,:),z_chk(3,:),'k-');
         end
         %% formulate background&observation error cov matrices, and H matrix:
-        number_of_samples = ntotal; % full sample size for (likely) nonsingular B
-        l_SpCov_SOAR = 1; % 0 for sampled covariance B, 1 for SOAR
-        L_atmos = 4; L_ocean = 2; % make these input variable
-        
-        [Bainv,Boinv,Ba,Bo,B,SD] = GetCovMatriceB(number_of_samples,h,assim_steps,na,no,Fx,Fy,alph,gamma,...
-            l_SpCov_SOAR,L_atmos, L_ocean,var_atmos_bg, var_ocean_bg);
+%         number_of_samples = ntotal; % full sample size for (likely) nonsingular B
+%         l_SpCov_SOAR = 1; % 0 for sampled covariance B, 1 for SOAR
+%         L_atmos = 4; L_ocean = 2; % make these input variable
+%         tic
+%         [Bainv,Boinv,Ba,Bo,B,SD] = GetCovMatriceB(number_of_samples,h,assim_steps,na,no,Fx,Fy,alph,gamma,...
+%             l_SpCov_SOAR,L_atmos, L_ocean,var_atmos_bg, var_ocean_bg);
+%         toc
 %         Bainv = (var_atmos_bg^(-1))*eye(na,na); Boinv = (var_atmos_bg^(-1))*eye(no,no);
         % B = blkdiag(Ba,Bo);
         % observation pattern:
@@ -104,19 +131,7 @@ for i_trial = 1:2
         y_ob = (ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps:1:...
             ob_pattern_repeat_freq*n_cycles_per_smoother*nsteps);
         % observation stats:
-        R_atmos = var_ob(1)*eye(na,na); R_ocean = var_ob(2)*eye(no,no);
-        R = blkdiag(R_atmos,R_ocean);
-        Rinv = inv(R);
-        Rainv = inv(R_atmos);
-        Roinv = inv(R_ocean);
-        space_skip = 4;
-        H_space_pattern = 1:space_skip:ntotal;
-        H_diag = zeros(1,ntotal);
-        H_diag(H_space_pattern) = 1;
-        H = diag(H_diag);
-        N_Obs_Num_Spatial = length(H_space_pattern);
-        N_Obs_Num_Spatial_o = N_Obs_Num_Spatial/2;
-        N_Obs_Num_Spatial_a = N_Obs_Num_Spatial_o;
+
         % H = eye(ntotal,ntotal);
         %     basetime = 0;
         
