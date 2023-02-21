@@ -1,7 +1,7 @@
 function [za2_f,z0] = smoother_step(za_plot,zb_plot,assim_steps,s5_B_scaling,...
     Bo,Roinv,H,H_ocean,s5_smoother_loops,z_ob,n_cycles_per_smoother,...
     h,nsteps,na,no,N_Obs_Num_Spatial_a,Fx,Fy,alph,gamma,ob_ix,l_lin_s5,...
-    max_iterations,tolerance,min_method)
+    max_iterations,tolerance,update_method,dXa_icycle)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 % za2_f assigment needs to be looked at!!!
@@ -43,14 +43,27 @@ for i_count_smoother = 1:s5_smoother_loops
         X_anal2 = z_lin(:,1) + [zeros(na,1);dXo_anal];
         X_temp = X_anal2;
         for icycles = 1:n_cycles_per_smoother
-            za2_f_icycles = l96c_rk2(X_temp,h,nsteps,na,no,Fx,Fy,alph,gamma);
-            za2_f(na+1:na+no,(icycles-1)*nsteps+1:icycles*nsteps) = za2_f_icycles(na+1:end,1:nsteps);
-            if icycles == n_cycles_per_smoother
-                za2_f(na+1:na+no,end) = za2_f_icycles(na+1:na+no,nsteps+1);
-                za2_f(1:na,:) = za_plot_2(1:na,:);
+            if update_method == 1 % method 1,2,3 of the report, section 2.2
+                za2_f_icycles = l96c_rk2(X_temp,h,nsteps,na,no,Fx,Fy,alph,gamma);
+                za2_f(na+1:na+no,(icycles-1)*nsteps+1:icycles*nsteps+1) = za2_f_icycles(na+1:end,1:end);
+                if icycles == n_cycles_per_smoother
+                    za2_f(na+1:na+no,end) = za2_f_icycles(na+1:na+no,nsteps+1);
+                    za2_f(1:na,:) = za_plot_2(1:na,:);
+                end                
+                % this part controls the initial state for the next cycle:                                                                                             
+                X_temp(1:na) = za2_f_icycles(1:na,end); 
+                X_temp(na+1:na+no) = za2_f_icycles(na+1:na+no,end);
+            elseif update_method == 2                
+                za2_f_icycles = l96c_rk2(X_temp,h,nsteps,na,no,Fx,Fy,alph,gamma);
+                za2_f(na+1:na+no,(icycles-1)*nsteps+1:icycles*nsteps) = za2_f_icycles(na+1:end,1:nsteps);
+                if icycles == n_cycles_per_smoother
+                    za2_f(na+1:na+no,end) = za2_f_icycles(na+1:na+no,nsteps+1);
+                    za2_f(1:na,:) = za_plot_2(1:na,:);
+                end
+                % this part controls the initial state for the next cycle:                                                                             
+                X_temp(1:na) = za_plot_2(1:na,icycles*nsteps+1); % reset initial atmos analysis to pre-smoother 
+                X_temp(na+1:na+no) = za2_f_icycles(na+1:na+no,nsteps+1);
             end
-            X_temp(1:na) = za_plot_2(1:na,icycles*nsteps+1); %
-            X_temp(na+1:na+no) = za2_f_icycles(na+1:na+no,nsteps+1);
         end
     else
         X_anal2 = z_lin(:,1) + [zeros(na,1);dXo_anal];
@@ -63,6 +76,8 @@ for i_count_smoother = 1:s5_smoother_loops
 
 z0 = za2_f(:,1);
 
+
+end
 
 end
 
