@@ -4,21 +4,24 @@ for ii = 1:1
     close all;
     n_repeat_no_cycle = 1;
     n_ob_pattern_repeats = 100;
-    standalone = 1; % 1 for standalone weakly coupled 4d-var, 2 for standalone 4d-var smoother
-    compare_or_standalone = 2; %1 for 4d-var only (no smoother), 2 for both and compare
-    var_bg = [0.1^2, 0.3^2];
-    ratio_bgob = 0.1;
+    compare_or_standalone = [2,2]; % [1,1] for standalone weakly coupled 4d-var, 
+                                   % [2,2] for standalone smoother, [1,2] for both and compare
+    var_bg = 10*[0.1^2, 0.3^2];
+    ratio_bgob = 10*0.1;
     var_ob = ratio_bgob*[0.1^2, 0.3^2];
     space_skip_a = 1;
     space_skip_o = 2;
-    for update_method = 1:2
+    ks = num2str([space_skip_a,space_skip_o]);
+    ks = ks(ks ~= ' ');
+    for update_method = 1:4
         tolerance = 1.0d-6;   % For solver
-        max_iterations = 10; % For solver
+        max_iterations = 50; % For solver
         % Grad_Test = 1: turn on gradient tests for calcfg routines; = 0 turn off.
         save_all_figures = 1;
         if save_all_figures == 1
             dirname = strcat('C:\results\DA\21Feb2023\a',num2str(space_skip_a),...
             'o',num2str(space_skip_o),'-sigmaBsigmaR-',num2str(sqrt(var_bg)),'-bgobratio-',num2str(ratio_bgob),'\');
+            dirname = dirname(dirname~=' ');
             mkdir(dirname);
             filename1 = strcat(dirname,'plot1a-',num2str(ii),'update_method',num2str(update_method),'.fig');
             filename2 = strcat(dirname,'plot1b-',num2str(ii),'update_method',num2str(update_method),'.fig');
@@ -61,7 +64,7 @@ for ii = 1:1
         disp(strcat('condition of B matrices = ',num2str([cond(Bo) cond(Ba)])))
         
         %% rk2 solver parameters and model parameters for the l96 coupled model
-        for i_trial = standalone:compare_or_standalone
+        for i_trial = compare_or_standalone(1):compare_or_standalone(2)
             rng(ii)  % Fix random seed
             % loop controls:
             % method control:
@@ -163,8 +166,6 @@ for ii = 1:1
                         if (i_ob_pattern_repeats == 1 && i_part_of_ob_pattern == 1)
                             noise = randn(ntotal,1);
                             z_b = z_t + sqrtm(B) * noise(1:ntotal);
-                            %                             save(data_bgx_out,'z_b')
-                            %load(data_bgx_in,'z_b')
                         elseif assim_scheme == 5
                             z_b = za2_f(:,assim_steps+1);
                         elseif assim_scheme == 4
@@ -207,7 +208,6 @@ for ii = 1:1
                                     xb_f = zb_f(1:na,:);
                                     yb_f = zb_f(na+1:ntotal,:);
                                     zb_plot(:,i_cycles,:) = zb_f;
-                                    %                             zb_f_chk(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps+1) = zb_f;
                                 end
                                 
                                 %% Perform assimilation of the weakly coupled standard 4DVAR:
@@ -224,10 +224,8 @@ for ii = 1:1
                                         % Calculate nonlinear trajectory with coupled model
                                         [z_lin] = l96c_rk2(z0,h,nsteps,na,no,Fx,Fy,alph,gamma);
                                     end
-                                    %                     z_lin = [x_lin,y_lin,z_lin,w_lin,v_lin]';
                                     innov = z_ob(:,(i_cycles-1)*nsteps+1:i_cycles*nsteps) - H*z_lin(:,2:nsteps+1); % Assume no ob at time zero.
-                                    % Includes where there are no obs, but can use ob_ix
-                                    % Perform separate minimisations
+
                                     
                                     %% weakly coupled standard 4dvar, minimisation routine:
                                     % Atmosphere
@@ -258,42 +256,12 @@ for ii = 1:1
                                     
                                     %%%%%%%%%%%
                                     format long
-                                    X_anal = z0;
-                                    %                                 Errormat_Tot_Atm_Oce_anal(i_smooth_iteration, i_count, :)=...
-                                    %                                     [norm(X_anal(1:na)-X_t(1:na)),norm(X_anal(1:na)-X_t(1:na)),norm(X_anal(na+1:ntotal)-X_t(na+1:ntotal))];
-                                    %%%%%%%%%%
-                                    
-                                    %                                 if i_count == 1
-                                    %                                     JXa  = JXaInner;
-                                    %                                     dJXa = dJXaInner;
-                                    %                                     JXo  = JXoInner;
-                                    %                                     dJXo = dJXoInner;
-                                    %                                 else
-                                    %                                     JXa  = [JXa' JXaInner']';
-                                    %                                     dJXa = [dJXa dJXaInner];
-                                    %                                     JXo  = [JXo' JXoInner']';
-                                    %                                     dJXo = [dJXo dJXoInner];
-                                    %                                 end
-                                    
+                                    X_anal = z0;                                    
                                 end % end outerloop
-                                %                     dXa_anal_cycle(:,i_cycles) = z0(1:na) - X_b(1:na);
-                                %                     Count_dXa = Count_dXa + 1;
                                 
                                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                                 
-                                
-                                %% Display error norms and store background errors for diagnostics
-                                %                             disp('***Final Results***')
-                                %                             format long
-                                %                             Xb_Xt_Xanal =[X_b(1), X_t(1), X_anal(1)]
-                                
                                 disp(strcat('ii =',num2str(ii),' Pattern Repeats = ',num2str(i_ob_pattern_repeats),' i_trial =',num2str(i_trial)))
-                                
-                                %%%%%%%%%%%%
-                                %                             if min_method == 0
-                                %                                 plot_convergence(JXa,dJXa,JXo,dJXo,i_cycles,i_part_of_ob_pattern,n_cycles_per_smoother,...
-                                %                                     ob_pattern_repeat_freq,l_plot_convergence,assim_scheme)
-                                %                             end
                                 
                                 %% Run forecast
                                 xa=X_anal(1:na);
@@ -489,11 +457,3 @@ for ii = 1:1
         end
     end
 end
-% figure(8080)
-% plot(za2_f(42,end-nsteps:end),'r-','DisplayName','Post Smoother Analysis Forecast at Last Cycle'); hold on;
-% plot(za_f(42,:),'b-','DisplayName','Presmoother Analysis Forecast at Last Cycle'); hold on;
-% plot(z(42,end-nsteps:end),'k-','DisplayName','Background Forecast at Last Cycle'); hold on;
-% z_ob_plot = z_ob(42,end-nsteps:end);
-% z_ob_plot(z_ob_plot == 0) = nan;
-% plot(z_ob_plot,'go','DisplayName','Observation'); hold on;
-% legend show
