@@ -6,9 +6,10 @@ for ii = 1:1
     n_ob_pattern_repeats = 100;
     compare_or_standalone = [2,2]; % [1,1] for standalone weakly coupled 4d-var, 
                                    % [2,2] for standalone smoother, [1,2] for both and compare
-    var_bg = 10*[0.1^2, 0.3^2];
-    ratio_bgob = 10*0.1;
-    var_ob = ratio_bgob*[0.1^2, 0.3^2];
+    var_size_scaling = 1;                               
+    var_bg = var_size_scaling*[0.1^2, 0.3^2];
+    var_ratio_bgob = var_size_scaling*0.1;
+    var_ob = var_ratio_bgob*[0.1^2, 0.3^2];
     space_skip_a = 1;
     space_skip_o = 2;
     ks = num2str([space_skip_a,space_skip_o]);
@@ -20,7 +21,7 @@ for ii = 1:1
         save_all_figures = 1;
         if save_all_figures == 1
             dirname = strcat('C:\results\DA\21Feb2023\a',num2str(space_skip_a),...
-            'o',num2str(space_skip_o),'-sigmaBsigmaR-',num2str(sqrt(var_bg)),'-bgobratio-',num2str(ratio_bgob),'\');
+            'o',num2str(space_skip_o),'-sigmaBsigmaR-',num2str(sqrt(var_bg)),'-bgobratio-',num2str(var_ratio_bgob),'\');
             dirname = dirname(dirname~=' ');
             mkdir(dirname);
             filename1 = strcat(dirname,'plot1a-',num2str(ii),'update_method',num2str(update_method),'.fig');
