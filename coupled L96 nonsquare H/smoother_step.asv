@@ -70,7 +70,7 @@ for i_count_smoother = 1:s5_smoother_loops
                 % this part controls the initial state for the next cycle:
                 X_temp(1:na) = za2_f_icycles(1:na,end)+dXa_icycle(icycles); 
                 X_temp(na+1:na+no) = za2_f_icycles(na+1:na+no,nsteps+1);
-            elseif update_method == 4 % Leung + increments
+            elseif update_method == 4 % Leung
                 za2_f_icycles = l96c_rk2(X_temp,h,nsteps,na,no,Fx,Fy,alph,gamma);
                 za2_f(na+1:na+no,(icycles-1)*nsteps+1:icycles*nsteps) = za2_f_icycles(na+1:end,1:nsteps);
                 if icycles == n_cycles_per_smoother

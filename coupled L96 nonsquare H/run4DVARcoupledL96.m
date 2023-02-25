@@ -4,9 +4,9 @@ for ii = 1:1
     close all;
     n_repeat_no_cycle = 1;
     n_ob_pattern_repeats = 100;
-    compare_or_standalone = [2,2]; % [1,1] for standalone weakly coupled 4d-var, 
+    compare_or_standalone = [1,2]; % [1,1] for standalone weakly coupled 4d-var, 
                                    % [2,2] for standalone smoother, [1,2] for both and compare
-    var_size_scaling = 1;                               
+    var_size_scaling = 10;                               
     var_bg = var_size_scaling*[0.1^2, 0.3^2];
     var_ratio_bgob = var_size_scaling*0.1;
     var_ob = var_ratio_bgob*[0.1^2, 0.3^2];
@@ -456,5 +456,25 @@ for ii = 1:1
             disp(strcat('condition of B',num2str([cond(Ba) cond(Bo)])))
             break;
         end
+        pause(2)
+        figure(8080+update_method)
+%         rng(ii)
+        which_variable = randperm(40);
+        z_ob_a_plot(:,2:size(z_ob_a,2)+1) = z_ob_a; z_ob_a_plot(z_ob_a_plot == 0) = nan;
+        plot(za2_f(which_variable,:),'-*','DisplayName',strcat('za',num2str(which_variable))); hold on; ...
+        plot(z(which_variable,:),'r-o','DisplayName',strcat('z',num2str(which_variable))); hold on;
+        plot(z_ob_a_plot(which_variable,:),'b<','DisplayName',strcat('z_{ob}',num2str(which_variable))); hold on;
+        legend show
+        
+        figure(8090+update_method)
+%         rng(ii)
+        which_variable = 41;
+        z_ob_o_plot(:,2:size(z_ob_o,2)+1) = z_ob_o; z_ob_o_plot(z_ob_o_plot == 0) = nan;
+        plot(za2_f(which_variable,:),'-*','DisplayName',strcat('za',num2str(which_variable))); hold on; ...
+        plot(z(which_variable,:),'r-o','DisplayName',strcat('z',num2str(which_variable))); hold on;
+        plot(z_ob_o_plot(1,:),'b<','DisplayName',strcat('z_{ob}',num2str(1))); hold on;
+        legend show        
     end
+%     figure(8080)
+%     plot(za2_f(4,:),'-*'); hold on; plot(z(4,:),'r-o');
 end
