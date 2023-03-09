@@ -2,7 +2,9 @@ function [za2_f,z0] = smoother_step(za_plot,zb_plot,assim_steps,s5_B_scaling,...
     Bo,Roinv,H,H_ocean,s5_smoother_loops,z_ob,n_cycles_per_smoother,...
     h,nsteps,na,no,N_Obs_Num_Spatial_a,Fx,Fy,alph,gamma,ob_ix,l_lin_s5,...
     max_iterations,tolerance,update_method,dXa_icycle)
-%% Smoother
+% This function performs the smoother updates of the oceanic analysis:
+% Output: za2_f - post-smoother analysis trajectory; z0 - possibly a dummy;
+
 za_plot_2 = reshape(permute(za_plot(:,:,1:nsteps),[1,3,2]),[na+no,assim_steps]);
 za_plot_2 = [za_plot_2 za_plot(:,end,end)];
 za2_f = zeros(size(za_plot_2));
@@ -57,7 +59,7 @@ for i_count_smoother = 1:s5_smoother_loops
                     za2_f(na+1:na+no,end) = za2_f_icycles(na+1:na+no,nsteps+1);
                     za2_f(1:na,:) = za_plot_2(1:na,:);
                 end
-                % this part controls the initial state for the next cycle:
+                % this part controls the initial state for the next short-cycle:
                 X_temp(1:na) = za_plot_2(1:na,icycles*nsteps+1); % reset initial atmos analysis to pre-smoother
                 X_temp(na+1:na+no) = za2_f_icycles(na+1:na+no,nsteps+1);
             elseif update_method == 3 % ASM&NKN + increments
@@ -67,7 +69,7 @@ for i_count_smoother = 1:s5_smoother_loops
                     za2_f(na+1:na+no,end) = za2_f_icycles(na+1:na+no,nsteps+1);
                     za2_f(1:na,:) = za_plot_2(1:na,:);
                 end
-                % this part controls the initial state for the next cycle:
+                % this part controls the initial state for the next short-cycle:
                 X_temp(1:na) = za2_f_icycles(1:na,end)+dXa_icycle(icycles); 
                 X_temp(na+1:na+no) = za2_f_icycles(na+1:na+no,nsteps+1);
             elseif update_method == 4 % Leung + increments
@@ -77,7 +79,7 @@ for i_count_smoother = 1:s5_smoother_loops
                     za2_f(na+1:na+no,end) = za2_f_icycles(na+1:na+no,nsteps+1);
                     za2_f(1:na,:) = za_plot_2(1:na,:);
                 end
-                % this part controls the initial state for the next cycle:
+                % this part controls the initial state for the next short-cycle:
                 X_temp(1:na) = za_plot_2(1:na,icycles*nsteps+1) + dXa_icycle(icycles); % reset initial atmos analysis to pre-smoother
                 X_temp(na+1:na+no) = za2_f_icycles(na+1:na+no,nsteps+1);
             end
@@ -88,12 +90,8 @@ for i_count_smoother = 1:s5_smoother_loops
             h,nsteps*n_cycles_per_smoother,no,Fx,Fy,alph,gamma);
         za2_f(1:na,:)=za_plot_2(1:na,:);
         za2_f(na+1:na+no,:)=ya2_f;
-    end
-    
-    
-    z0 = za2_f(:,1);
-    
-    
+    end  
+    z0 = za2_f(:,1);     
 end
 
 end

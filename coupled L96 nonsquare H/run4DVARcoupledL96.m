@@ -6,9 +6,8 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
     n_repeat_no_cycle = 1;    % If user chooses to experiments with randomized initial true state, set n_repeat_no_cycle >> 1;
     n_ob_pattern_repeats = 500; % This is the number of long-cycles of repeated observation patterns;
     compare_or_standalone = [1,2]; % [1,1] is for experimenting with standalone weakly coupled 4d-var,
-    % [2,2] is for standalone smoother, [1,2] is for experimenting with both and compare
+                                   % [2,2] is for standalone smoother, [1,2] is for experimenting with both and compare
     
-    l_plot_spreading = 0;  % plot error norm spreading (=1) or not (=0);
     
     %% Solver parameters
     tolerance = 1.0d-6;
@@ -69,8 +68,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
     % smoother setup
     s5_B_scaling = 1;
     s5_iterations = 1;
-    l_lin_s5 = 1;       % 0 = Take the analysis trajectory as both background
-    % and the first linearisation state (this is inheritated from the L63 code);
+    l_lin_s5 = 1;      % 0 = Take the analysis trajectory as both background and the first linearisation state (this is inheritated from the L63 code);
     l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step (not available yet)
     
     %% Data control:
@@ -84,10 +82,11 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
     l_plot_avg_error_norm = 1; % plot averaged error norm over all long-cycles
     l_plot_avg_error_norm_compare = 1; % plot relative changes in the averaged error norm (?)
     l_plot_trajectories = 0;    % plot state variable trajectories in each long-cycles (not recommended)
+    l_plot_spreading = 0;  % plot error norm spreading (=1) or not (=0);
     
     
-    %% Loop over all update_methods of the smoother (keep it to 1:1 for Tsz Yan's method)
-    for update_method = 1:1  % for the comparison of strategy 1 to 4, set the loop to be 1:4;
+    %% Loop over all update_methods of the smoother (keep it to 2:2 for Leung, Tsz Yan's method)
+    for update_method = 2:2  % for the comparison of strategy 1 to 4, set the loop to be 1:4;
         
         % Filenames and directories
         save_all_figures = 1;
