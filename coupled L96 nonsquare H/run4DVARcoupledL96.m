@@ -462,6 +462,8 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
             break;
         end
         pause(2) % buffer to allow workspace storage catching up (otherwise a massive lagging affects computational speed when the number of loops is large)
+                 % It's best to write the loop's substance as a subroutine to
+                 % avoid this issue;
     end
     if l_plot_spreading == 1
         figure(10010) % spreading of the smoother error norms
