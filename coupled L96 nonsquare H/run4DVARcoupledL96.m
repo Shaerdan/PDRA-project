@@ -2,6 +2,7 @@ clc;
 clear;
 for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with different seeds, specified by ii
     close all;
+    %% Experiment control:
     n_repeat_no_cycle = 1;    % If user chooses to experiments with randomized initial true state, set n_repeat_no_cycle >> 1;
     n_ob_pattern_repeats = 500; % This is the number of long-cycles of repeated observation patterns;
     compare_or_standalone = [1,2]; % [1,1] is for experimenting with standalone weakly coupled 4d-var,
@@ -9,21 +10,23 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
     
     l_plot_spreading = 0;  % plot error norm spreading (=1) or not (=0);
     
-    % Solver parameters
+    %% Solver parameters
     tolerance = 1.0d-6;
     max_iterations = 50;
     nsteps = 4;
     h=0.0125d0;
     
-    % Model parameters:
+    %% Model parameters:
     Fx=15;
     Fy=8;
     alph=0.5;
     gamma= 0.6;
     N = 40;
     na = N; no = N; ntotal = na + no; % na is the number of atmos variables, no is the number of oceanic variables;
+    xvals=1:na; % atmospheric grid point indeces
+    yvals=1:no; % oceanic grid point indeces
     
-    % Spatial observation settings
+    %% Spatial observation settings
     space_skip_a = 1;  % atmos observation takes 1 observation every space_skip_a grids;
     space_skip_o = 2;  % oceanic observation takes 1 observation every space_skip_o grids;
     H_space_pattern_atmos = 1:space_skip_a:na;
@@ -39,7 +42,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
     N_Obs_Num_Spatial_a = size(H_atmos,1);
     N_Obs_Num_Spatial_o = size(H_ocean,1);
     
-    % Observation error stats:
+    %% Observation error stats:
     var_size_scaling = 1;  % This is the scaling parameter for both bg and ob variances
     var_bg = var_size_scaling*[0.1^2, 0.3^2];
     var_ratio_bgob = 0.1;  % ratio of ob_variance/bg_variance
@@ -51,7 +54,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
     Rainv = inv(R_atmos);
     Roinv = inv(R_ocean);
     
-    % Background error stats:
+    %% Background error stats:
     number_of_samples = ntotal; % full sample size for (likely) nonsingular B
     l_SpCov_SOAR = 1; % B construction methods, =0 for sampled covariance B, =1 for SOAR
     L_atmos = 4; L_ocean = 8; % corr lengthscale for SOAR version of B;
@@ -60,11 +63,16 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
         l_SpCov_SOAR,L_atmos, L_ocean,var_bg(1), var_bg(1));
     disp(strcat('condition of B matrices = ',num2str([cond(Bo) cond(Ba)])))
     
-    % Incremental 4d-var solver control parameters:
+    %% Incremental 4d-var solver control parameters:
     outer_loops = 1;     % number of outerloop for weakly coupled standard 4dvar
     s5_smoother_loops = 1;  % number of outer loops for the smoother
-    
-    for update_method = 1:1
+    % smoother setup
+    s5_B_scaling = 1;
+    s5_iterations = 1;
+    l_lin_s5 = 1;       % 0 = Take the analysis trajectory as both background
+    % and the first linearisation state (this is inheritated from the L63 code);
+    %% Loop over all update_methods of the smoother (keep it to 1:1 for Tsz Yan's method)
+    for update_method = 1:1  % for the comparison of strategy 1 to 4, set the loop to be 1:4;
         
         % Filenames and directories
         save_all_figures = 1;
@@ -80,9 +88,8 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
         end
         
         for i_assim_scheme = compare_or_standalone(1):compare_or_standalone(2)
-            rng(ii)  % Fix random seed
-            % loop controls:
-            % method control:
+            rng(ii)  % Fix random seed, ii is normally = 1 unless user choose to repeat experiments with different initial noises;
+            % Assimilation scheme control, 4 for weakly-coupled 4d-var, 5 for the smoother method:
             schemes_trial = [4 5];
             assim_scheme = schemes_trial(i_assim_scheme);  % 5 for smoother method
             
@@ -97,33 +104,20 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
             % this number of (smoother) assimilation cycles
             assim_steps = nsteps*n_cycles_per_smoother;
             
-            l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step
+            l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step (not available yet)
             % data control:
-            l_newbg_xb = 1;
-            l_newobs = 1;
+            l_newbg_xb = 1;    % =1 generate bg variables and stats with seed rng(ii), =0 read in from saved data (not available yet)
+            l_newobs = 1;      % same as above but for ob variables;
             % plot control:
-            l_plot_convergence = 0;
-            l_plot_state = 0;
-            l_plot_error_norm = 0;
-            l_plot_avg_error_norm = 1;
-            l_plot_avg_error_norm_compare = 1;
-            l_plot_trajectories = 0;
-            %% Smoother setup
-            s5_B_scaling = 1;
-            s5_iterations = 1;
-            l_lin_s5 = 1;       % 0 = Take the analysis trajectory as both background and the first linearisation state;
-            l_integration_coupled_s5 = 1;   % At the last outer loop of the last iteration of the smoother step (which produces
-            % the final analysis), whether to integrate the smoother analysis at initial time using
-            % the coupled model; if yes, the atmospheric trajectory would be reset to that of the
-            % original atmospheric analyses at the beginning of each standard assimilation window
-            % before the coupled model integration is continued (this capability hasn't been designed
-            % for cases where IAU is used for the smoother step)
+            l_plot_convergence = 0; % plot convergence of minimize_mod_crit_NKN (taken out for reducing computational costs)
+            l_plot_state = 0;       % plot state variable trajectories;
+            l_plot_error_norm = 0;  % plot error norms for each long-cycles (not recommended)
+            l_plot_avg_error_norm = 1; % plot averaged error norm over all long-cycles
+            l_plot_avg_error_norm_compare = 1; % plot relative changes in the averaged error norm (?)
+            l_plot_trajectories = 0;    % plot state variable trajectories in each long-cycles (not recommended)
             
-            %% Setting up parameters for the assimilation
             
-            xvals=1:na; % atmosphere grid indeces
-            yvals=1:no; % ocean grid indeces
-            
+            %% Initialising error norm tensors:
             if l_plot_avg_error_norm_compare
                 if n_repeat_no_cycle ~=1
                     n_store_norm = n_repeat_no_cycle;
@@ -157,7 +151,6 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
                 for i_ob_pattern_repeats = 1:n_ob_pattern_repeats
                     for i_part_of_ob_pattern = 1:ob_pattern_repeat_freq
                         %% Start identical-twin set-up
-                        
                         zb_plot=zeros(ntotal,n_cycles_per_smoother,nsteps+1);
                         % Generate truth
                         if (i_ob_pattern_repeats == 1 && i_part_of_ob_pattern == 1)
@@ -184,8 +177,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
                         elseif assim_scheme == 4
                             z_b = za_plot(:,end,end);
                         end
-                        %                     disp(strcat('ii =',num2str(ii),' Pattern Repeats = ',num2str(i_ob_pattern_repeats),' i_assim_scheme =',num2str(i_assim_scheme)))
-                        % initialising za_plot
+                        % initialising the analysis trajectory storage matrix;
                         za_plot=zeros(ntotal,n_cycles_per_smoother,nsteps+1);
                         ob_ix=zeros(assim_steps,2);
                         obs_noise=randn(ntotal,assim_steps);
@@ -204,9 +196,6 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
                         end
                         z_ob = [z_ob_a; z_ob_o];
                         
-                        
-                        %
-                        %% Outer loops for smoother
                         
                         for i_smooth_iteration=1:s5_iterations
                             for i_cycles = 1:n_cycles_per_smoother
@@ -366,7 +355,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
                 end
             end % one cycle repeat trials (no long cycling)
             
-            %%%%%%%%%%% Plotting module
+            %% Plotting module
             if l_plot_avg_error_norm && i_repeat_one_cycle == n_repeat_no_cycle
                 %% Plot error norms averaged over (smoother) cycles
                 if i_assim_scheme == 1
@@ -468,24 +457,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
             disp(strcat('condition of B',num2str([cond(Ba) cond(Bo)])))
             break;
         end
-        pause(2)
-        %         figure(8080+update_method)
-        % %         rng(ii)
-        %         which_variable = randperm(40);
-        %         z_ob_a_plot(:,2:size(z_ob_a,2)+1) = z_ob_a; z_ob_a_plot(z_ob_a_plot == 0) = nan;
-        %         plot(za2_f(which_variable,:),'-*','DisplayName',strcat('za',num2str(which_variable))); hold on; ...
-        %         plot(z(which_variable,:),'r-o','DisplayName',strcat('z',num2str(which_variable))); hold on;
-        %         plot(z_ob_a_plot(which_variable,:),'b<','DisplayName',strcat('z_{ob}',num2str(which_variable))); hold on;
-        %         legend show
-        %
-        %         figure(8090+update_method)
-        % %         rng(ii)
-        %         which_variable = 41;
-        %         z_ob_o_plot(:,2:size(z_ob_o,2)+1) = z_ob_o; z_ob_o_plot(z_ob_o_plot == 0) = nan;
-        %         plot(za2_f(which_variable,:),'-*','DisplayName',strcat('za',num2str(which_variable))); hold on; ...
-        %         plot(z(which_variable,:),'r-o','DisplayName',strcat('z',num2str(which_variable))); hold on;
-        %         plot(z_ob_o_plot(1,:),'b<','DisplayName',strcat('z_{ob}',num2str(1))); hold on;
-        %         legend show
+        pause(2) % buffer to allow workspace storage catching up (otherwise a massive lagging affects computational speed when the number of loops is large)
     end
     if l_plot_spreading == 1
         figure(10010) % spreading smoother
