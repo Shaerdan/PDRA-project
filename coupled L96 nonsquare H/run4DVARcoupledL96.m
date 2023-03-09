@@ -71,6 +71,21 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
     s5_iterations = 1;
     l_lin_s5 = 1;       % 0 = Take the analysis trajectory as both background
     % and the first linearisation state (this is inheritated from the L63 code);
+    l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step (not available yet)
+    
+    %% Data control:
+    l_newbg_xb = 1;    % =1 generate bg variables and stats with seed rng(ii), =0 read in from saved data (not available yet)
+    l_newobs = 1;      % same as above but for ob variables;
+    
+    %% Plot control:
+    l_plot_convergence = 0; % plot convergence of minimize_mod_crit_NKN (taken out for reducing computational costs)
+    l_plot_state = 0;       % plot state variable trajectories;
+    l_plot_error_norm = 0;  % plot error norms for each long-cycles (not recommended)
+    l_plot_avg_error_norm = 1; % plot averaged error norm over all long-cycles
+    l_plot_avg_error_norm_compare = 1; % plot relative changes in the averaged error norm (?)
+    l_plot_trajectories = 0;    % plot state variable trajectories in each long-cycles (not recommended)
+    
+    
     %% Loop over all update_methods of the smoother (keep it to 1:1 for Tsz Yan's method)
     for update_method = 1:1  % for the comparison of strategy 1 to 4, set the loop to be 1:4;
         
@@ -104,17 +119,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
             % this number of (smoother) assimilation cycles
             assim_steps = nsteps*n_cycles_per_smoother;
             
-            l_fgat_s5 = 0;     % 0 = 4DVar for smoother step; 1 = 3DFGAT for smoother step (not available yet)
-            % data control:
-            l_newbg_xb = 1;    % =1 generate bg variables and stats with seed rng(ii), =0 read in from saved data (not available yet)
-            l_newobs = 1;      % same as above but for ob variables;
-            % plot control:
-            l_plot_convergence = 0; % plot convergence of minimize_mod_crit_NKN (taken out for reducing computational costs)
-            l_plot_state = 0;       % plot state variable trajectories;
-            l_plot_error_norm = 0;  % plot error norms for each long-cycles (not recommended)
-            l_plot_avg_error_norm = 1; % plot averaged error norm over all long-cycles
-            l_plot_avg_error_norm_compare = 1; % plot relative changes in the averaged error norm (?)
-            l_plot_trajectories = 0;    % plot state variable trajectories in each long-cycles (not recommended)
+            
             
             
             %% Initialising error norm tensors:
@@ -288,7 +293,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
                                     max_iterations,tolerance,update_method,dXa_icycle);
                             end
                         end % i_smooth
-                        %%%%%%%%% plotting module storage:
+                        
                         if l_plot_avg_error_norm_compare
                             %% Store norm values for later plotting
                             if n_repeat_no_cycle ~=1
@@ -331,7 +336,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
                                 end
                             end
                             
-                            if assim_scheme == 5 && i_assim_scheme == 2
+                            if assim_scheme == 5 && i_assim_scheme == 2 % the second condiiton is probably dummy (?);
                                 % Total norm
                                 smoother_norm = vecnorm(rdivide(za2_f - z, ntotal));
                                 Err_norm_smoother(i_store_norm, i_part_of_ob_pattern, :, 1) = smoother_norm;
@@ -460,7 +465,7 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
         pause(2) % buffer to allow workspace storage catching up (otherwise a massive lagging affects computational speed when the number of loops is large)
     end
     if l_plot_spreading == 1
-        figure(10010) % spreading smoother
+        figure(10010) % spreading of the smoother error norms
         %% Plot error norms spreading over (smoother) cycles
         
         % Total norm
@@ -514,59 +519,5 @@ for ii = 1:1  % Repeat the long-pattern-repeating cycles experiments with differ
             hold off
         end
     end
-    %     figure(10020) % spreading weakly coupled 4d-var
-    %     %% Plot error norms spreading over (smoother) cycles
-    %
-    %     % Total norm
-    %     for i_spread = 1:n_ob_pattern_repeats
-    %         subplot(3,1,1)
-    %         hold on
-    %         for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
-    %             basetime = (i-1) * nsteps * h;
-    %             bg_error = squeeze(Err_norm_bg_1(i_spread,:,i,:,1));
-    %             plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
-    %             anal_error = squeeze(Err_norm_anal_1(i_spread,:,i,:,1));
-    %             plot((basetime:h:basetime+nsteps*h), anal_error, 'r')
-    %             xline(basetime + nsteps * h,'HandleVisibility','Off');
-    %         end
-    %         ylabel('Error norm')
-    %         xlabel('Time within the window')
-    %         hold off
-    %
-    %         % Atmospheric norm
-    %         subplot(3,1,2)
-    %         hold on
-    %         for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
-    %             basetime = (i-1) * nsteps * h;
-    %             bg_error = squeeze(Err_norm_bg_1(i_spread,:,i,:,2));
-    %             plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
-    %             anal_error = squeeze(Err_norm_anal_1(i_spread,:,i,:,2));
-    %             plot((basetime:h:basetime+nsteps*h), anal_error, 'r')
-    %             xline(basetime + nsteps * h,'HandleVisibility','Off');
-    %         end
-    %         title(sprintf('Error norms spreading over %i windows of an identical observation pattern - Atmoshpere', i_store_norm))
-    %         ylabel('Error norm')
-    %         xlabel('Time within the window')
-    %         hold off
-    %
-    %         % Ocenaic norm
-    %         subplot(3,1,3)
-    %         hold on
-    %
-    %         for i = 1:n_cycles_per_smoother*ob_pattern_repeat_freq
-    %             basetime = (i-1) * nsteps * h;
-    %             bg_error = squeeze(Err_norm_bg_1(i_spread,:,i,:,3));
-    %             plot((basetime:h:basetime+nsteps*h), bg_error, 'Color', '#0072BD')
-    %             anal_error = squeeze(Err_norm_anal_1(i_spread,:,i,:,3));
-    %             plot((basetime:h:basetime+nsteps*h), anal_error, 'r')
-    %             xline(basetime + nsteps * h,'HandleVisibility','Off');
-    %         end
-    %         title(sprintf('Error norms spreading over %i windows of an identical observation pattern - Ocean', i_store_norm))
-    %         ylabel('Error norm')
-    %         xlabel('Time within the window')
-    %         hold off
-    %     end
     
-    %     figure(8080)
-    %     plot(za2_f(4,:),'-*'); hold on; plot(z(4,:),'r-o');
 end
